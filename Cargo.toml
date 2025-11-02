@@ -1,0 +1,13 @@
+[package]
+name = "kanban_be"
+version = "0.1.0"
+edition = "2024"
+description = "REST API backend for a Kanban application"
+repository = "https://github.com/mysci4k/kanban_be"
+license = "MIT"
+
+[dependencies]
+actix-web = "4.11.0"
+dotenvy = "0.15.7"
+tracing = "0.1.41"
+tracing-subscriber = "0.3.20"
