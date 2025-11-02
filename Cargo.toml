@@ -7,11 +7,10 @@ repository = "https://github.com/mysci4k/kanban_be"
 license = "MIT"
 
 [workspace]
-# members = [".", "entity", "migration"]
-members = [".", "migration"]
+members = [".", "entity", "migration"]
 
 [dependencies]
-# entity = { path = "entity" }
+entity = { path = "entity" }
 migration = { path = "migration" }
 actix-web = "4.11.0"
 dotenvy = "0.15.7"
