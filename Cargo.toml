@@ -7,3 +7,4 @@ repository = "https://github.com/mysci4k/kanban_be"
 license = "MIT"
 
 [dependencies]
+actix-web = "4.11.0"
