@@ -1,5 +1,6 @@
 mod m20251102_200527_create_user_table;
 mod m20251102_201124_create_board_table;
+mod m20251102_201821_create_column_table;
 
 pub use sea_orm_migration::prelude::*;
 
@@ -11,6 +12,7 @@ impl MigratorTrait for Migrator {
         vec![
             Box::new(m20251102_200527_create_user_table::Migration),
             Box::new(m20251102_201124_create_board_table::Migration),
+            Box::new(m20251102_201821_create_column_table::Migration),
         ]
     }
 }
