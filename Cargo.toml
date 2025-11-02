@@ -6,7 +6,13 @@ description = "REST API backend for a Kanban application"
 repository = "https://github.com/mysci4k/kanban_be"
 license = "MIT"
 
+[workspace]
+# members = [".", "entity", "migration"]
+members = [".", "migration"]
+
 [dependencies]
+# entity = { path = "entity" }
+migration = { path = "migration" }
 actix-web = "4.11.0"
 dotenvy = "0.15.7"
 tracing = "0.1.41"
