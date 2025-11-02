@@ -1,9 +1,13 @@
+mod infrastructure;
 mod presentation;
 mod shared;
 
 use crate::{
     presentation::http::configure_server,
-    shared::utils::constants::{SERVER_ADDRESS, SERVER_PORT},
+    shared::{
+        config::initialize_infrastructure,
+        utils::constants::{SERVER_ADDRESS, SERVER_PORT},
+    },
 };
 use dotenvy::dotenv;
 use std::io::Result;
@@ -19,6 +23,10 @@ async fn main() -> Result<()> {
         .finish();
     tracing::subscriber::set_global_default(subscriber)
         .expect("Failed to set global default subscriber");
+
+    let _database = initialize_infrastructure()
+        .await
+        .expect("Failed to initialize infrastructure");
 
     let server = configure_server(&SERVER_ADDRESS, *SERVER_PORT).await?;
 
