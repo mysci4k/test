@@ -1,8 +1,9 @@
 use crate::{
     application::dto::{CreateUserDto, UserDto},
     domain::repositories::{User, UserRepository},
-    shared::error::ApplicationError,
+    shared::{error::ApplicationError, utils},
 };
+use actix_web::rt::task;
 use entity::UserModel;
 use std::sync::Arc;
 use uuid::Uuid;
@@ -26,10 +27,19 @@ impl AuthService {
             });
         }
 
+        let hashed_password = task::spawn_blocking(move || utils::password::hash(dto.password))
+            .await
+            .map_err(|_| ApplicationError::InternalServerError {
+                message: "Failed to hash password".to_string(),
+            })?
+            .map_err(|_| ApplicationError::InternalServerError {
+                message: "Password hashing failed".to_string(),
+            })?;
+
         let user = User::new(
             Uuid::now_v7(),
             dto.email,
-            dto.password,
+            hashed_password,
             dto.first_name,
             dto.last_name,
         );
