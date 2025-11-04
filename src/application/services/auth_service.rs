@@ -1,5 +1,5 @@
 use crate::{
-    application::dto::{CreateUserDto, UserDto},
+    application::dto::{CreateUserDto, LoginDto, UserDto},
     domain::repositories::{User, UserRepository},
     shared::{error::ApplicationError, utils},
 };
@@ -55,6 +55,51 @@ impl AuthService {
             is_active: saved_user.is_active,
             created_at: saved_user.created_at,
             updated_at: saved_user.updated_at,
+        }))
+    }
+
+    pub async fn login(&self, dto: LoginDto) -> Result<UserDto, ApplicationError> {
+        dto.validate()?;
+
+        let user = self
+            .user_repository
+            .find_by_email(&dto.email)
+            .await?
+            .ok_or_else(|| ApplicationError::BadRequest {
+                message: "Invalid credentials".to_string(),
+            })?;
+
+        let password_valid = task::spawn_blocking({
+            let user_password = user.password.clone();
+            move || utils::password::verify_hash(dto.password, user_password)
+        })
+        .await
+        .map_err(|_| ApplicationError::InternalServerError {
+            message: "Failed to verify password".to_string(),
+        })?
+        .map_err(|_| ApplicationError::BadRequest {
+            message: "Password verification error".to_string(),
+        })?;
+
+        if !password_valid {
+            return Err(ApplicationError::BadRequest {
+                message: "Invalid credentials".to_string(),
+            });
+        }
+
+        if !user.is_active {
+            return Err(ApplicationError::Forbidden);
+        }
+
+        Ok(UserDto::from_entity(UserModel {
+            id: user.id,
+            email: user.email,
+            password: user.password,
+            first_name: user.first_name,
+            last_name: user.last_name,
+            is_active: user.is_active,
+            created_at: user.created_at,
+            updated_at: user.updated_at,
         }))
     }
 }
