@@ -8,6 +8,7 @@ use validator::ValidationErrors;
 #[derive(Debug, Error)]
 pub enum ApplicationError {
     Conflict { message: String },
+    InternalServerError { message: String },
     ValidationError { message: String },
     DatabaseError(DbErr),
 }
@@ -40,6 +41,12 @@ impl ResponseError for ApplicationError {
             ApplicationError::Conflict { message } => {
                 (StatusCode::CONFLICT, "Conflict", message.clone(), None)
             }
+            ApplicationError::InternalServerError { message } => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Internal Server Error",
+                message.clone(),
+                None,
+            ),
             ApplicationError::ValidationError { message } => (
                 StatusCode::BAD_REQUEST,
                 "Validation Error",
@@ -66,6 +73,7 @@ impl ResponseError for ApplicationError {
     fn status_code(&self) -> StatusCode {
         match self {
             ApplicationError::Conflict { .. } => StatusCode::CONFLICT,
+            ApplicationError::InternalServerError { .. } => StatusCode::INTERNAL_SERVER_ERROR,
             ApplicationError::ValidationError { .. } => StatusCode::BAD_REQUEST,
             ApplicationError::DatabaseError(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
@@ -76,6 +84,10 @@ impl fmt::Display for ApplicationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             ApplicationError::Conflict { message } => write!(f, "Conflict: {}", message),
+            ApplicationError::InternalServerError { message } => {
+                write!(f, "Internal server error: {}", message)
+            }
+
             ApplicationError::ValidationError { message } => {
                 write!(f, "Validation error: {}", message)
             }
