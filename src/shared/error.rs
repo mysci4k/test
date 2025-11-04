@@ -7,6 +7,8 @@ use validator::ValidationErrors;
 
 #[derive(Debug, Error)]
 pub enum ApplicationError {
+    BadRequest { message: String },
+    Forbidden,
     Conflict { message: String },
     InternalServerError { message: String },
     ValidationError { message: String },
@@ -38,6 +40,18 @@ struct ErrorResponse {
 impl ResponseError for ApplicationError {
     fn error_response(&self) -> HttpResponse {
         let (status, error_type, message, details) = match self {
+            ApplicationError::BadRequest { message } => (
+                StatusCode::BAD_REQUEST,
+                "Bad Request",
+                message.clone(),
+                None,
+            ),
+            ApplicationError::Forbidden => (
+                StatusCode::FORBIDDEN,
+                "Forbidden",
+                "Access denied".to_string(),
+                None,
+            ),
             ApplicationError::Conflict { message } => {
                 (StatusCode::CONFLICT, "Conflict", message.clone(), None)
             }
@@ -72,6 +86,8 @@ impl ResponseError for ApplicationError {
 
     fn status_code(&self) -> StatusCode {
         match self {
+            ApplicationError::BadRequest { .. } => StatusCode::BAD_REQUEST,
+            ApplicationError::Forbidden => StatusCode::FORBIDDEN,
             ApplicationError::Conflict { .. } => StatusCode::CONFLICT,
             ApplicationError::InternalServerError { .. } => StatusCode::INTERNAL_SERVER_ERROR,
             ApplicationError::ValidationError { .. } => StatusCode::BAD_REQUEST,
@@ -83,6 +99,8 @@ impl ResponseError for ApplicationError {
 impl fmt::Display for ApplicationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            ApplicationError::BadRequest { message } => write!(f, "Bad request: {}", message),
+            ApplicationError::Forbidden => write!(f, "Forbidden"),
             ApplicationError::Conflict { message } => write!(f, "Conflict: {}", message),
             ApplicationError::InternalServerError { message } => {
                 write!(f, "Internal server error: {}", message)
