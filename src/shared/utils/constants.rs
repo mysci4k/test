@@ -16,6 +16,13 @@ pub static SERVER_PORT: LazyLock<u16> = LazyLock::new(|| {
 pub static DATABASE_URL: LazyLock<String> =
     LazyLock::new(|| env::var("DATABASE_URL").expect("Missing DATABASE_URL environment variable"));
 
+pub static REDIS_URL: LazyLock<String> =
+    LazyLock::new(|| env::var("REDIS_URL").expect("Missing REDIS_URL environment variable"));
+
+// Authentication configuration constants
+pub static SESSION_KEY: LazyLock<String> =
+    LazyLock::new(|| env::var("SESSION_KEY").expect("Missing SESSION_KEY environment variable"));
+
 // Regular expressions for validation
 pub static RE_ONLY_LETTERS: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^\p{L}+$").unwrap());
 
