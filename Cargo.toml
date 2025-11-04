@@ -25,3 +25,4 @@ serde_json = { version = "1.0.145", features = ["preserve_order"] }
 validator = { version = "0.20.0", features = ["derive"] }
 async-trait = "0.1.89"
 regex = "1.12.2"
+argon2 = { version = "0.5.3", features = ["std"] }
