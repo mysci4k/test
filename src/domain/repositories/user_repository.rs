@@ -41,5 +41,6 @@ impl User {
 #[async_trait]
 pub trait UserRepository: Send + Sync {
     async fn create(&self, user: User) -> Result<User, ApplicationError>;
+    async fn find_by_email(&self, email: &str) -> Result<Option<User>, ApplicationError>;
     async fn exists_by_email(&self, email: &str) -> Result<bool, ApplicationError>;
 }
