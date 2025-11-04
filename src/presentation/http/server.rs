@@ -1,5 +1,19 @@
-use crate::{presentation::configure_auth_roures, shared::config::AppState};
-use actix_web::{App, HttpResponse, HttpServer, Responder, get, web};
+use crate::{
+    presentation::configure_auth_roures,
+    shared::{
+        config::AppState,
+        utils::constants::{REDIS_URL, SESSION_KEY},
+    },
+};
+use actix_identity::IdentityMiddleware;
+use actix_session::{SessionMiddleware, config::PersistentSession, storage::RedisSessionStore};
+use actix_web::{
+    App, HttpResponse, HttpServer, Responder,
+    cookie::{Key, time::Duration},
+    get,
+    middleware::Logger,
+    web,
+};
 use std::io::Result;
 
 #[get("/")]
@@ -12,9 +26,23 @@ pub async fn configure_server(
     server_address: &str,
     server_port: u16,
 ) -> Result<actix_web::dev::Server> {
+    let redis_store = RedisSessionStore::new(REDIS_URL.as_str())
+        .await
+        .expect("Failed to connect to Redis for session storage");
+
+    let session_key = Key::from(SESSION_KEY.as_bytes());
+
     let server = HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(app_state.auth_service.clone()))
+            .wrap(Logger::default())
+            .wrap(IdentityMiddleware::default())
+            .wrap(
+                SessionMiddleware::builder(redis_store.clone(), session_key.clone())
+                    .session_lifecycle(PersistentSession::default().session_ttl(Duration::days(1)))
+                    .cookie_name("user-session".to_string())
+                    .build(),
+            )
             .service(
                 web::scope("/api")
                     .service(health_check)
