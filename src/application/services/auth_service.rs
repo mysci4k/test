@@ -1,21 +1,35 @@
 use crate::{
     application::dto::{CreateUserDto, LoginDto, UserDto},
     domain::repositories::{User, UserRepository},
-    shared::{error::ApplicationError, utils},
+    shared::{
+        error::ApplicationError,
+        utils::{self, email::EmailService},
+    },
 };
 use actix_web::rt::task;
 use entity::UserModel;
+use redis::Client as RedisClient;
 use std::sync::Arc;
 use uuid::Uuid;
 use validator::Validate;
 
 pub struct AuthService {
     user_repository: Arc<dyn UserRepository>,
+    redis_client: RedisClient,
+    email_service: Arc<EmailService>,
 }
 
 impl AuthService {
-    pub fn new(user_repository: Arc<dyn UserRepository>) -> Self {
-        Self { user_repository }
+    pub fn new(
+        user_repository: Arc<dyn UserRepository>,
+        redis_client: RedisClient,
+        email_service: Arc<EmailService>,
+    ) -> Self {
+        Self {
+            user_repository,
+            redis_client,
+            email_service,
+        }
     }
 
     pub async fn register(&self, dto: CreateUserDto) -> Result<UserDto, ApplicationError> {
@@ -45,6 +59,23 @@ impl AuthService {
         );
 
         let saved_user = self.user_repository.create(user).await?;
+
+        let activation_token = utils::password::generate_activation_token();
+        utils::activation::store_activation_token(
+            &self.redis_client,
+            &saved_user.id.to_string(),
+            &activation_token,
+        )
+        .map_err(|_| ApplicationError::InternalServerError {
+            message: "Failed to store activation token".to_string(),
+        })?;
+
+        let username = format!("{} {}", saved_user.first_name, saved_user.last_name);
+        self.email_service
+            .send_activation_email(&saved_user.email, &username, &activation_token)
+            .map_err(|_| ApplicationError::InternalServerError {
+                message: "Failed to send activation email".to_string(),
+            })?;
 
         Ok(UserDto::from_entity(UserModel {
             id: saved_user.id,

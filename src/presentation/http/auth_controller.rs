@@ -26,7 +26,7 @@ async fn register(
     let user = auth_service.register(dto.into_inner()).await?;
 
     Ok(HttpResponse::Created().json(serde_json::json!({
-        "message": "User registered successfully",
+        "message": "User registered successfully. Please check your email to activate your account",
         "data": user
     })))
 }
