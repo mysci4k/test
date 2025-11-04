@@ -23,6 +23,24 @@ pub static REDIS_URL: LazyLock<String> =
 pub static SESSION_KEY: LazyLock<String> =
     LazyLock::new(|| env::var("SESSION_KEY").expect("Missing SESSION_KEY environment variable"));
 
+// Email configuration constants
+pub static SMTP_SERVER: LazyLock<String> =
+    LazyLock::new(|| env::var("SMTP_SERVER").expect("Missing SMTP_SERVER environment variable"));
+
+pub static SMTP_USERNAME: LazyLock<String> = LazyLock::new(|| {
+    env::var("SMTP_USERNAME").expect("Missing SMTP_USERNAME environment variable")
+});
+
+pub static SMTP_PASSWORD: LazyLock<String> = LazyLock::new(|| {
+    env::var("SMTP_PASSWORD").expect("Missing SMTP_PASSWORD environment variable")
+});
+
+pub static FROM_EMAIL: LazyLock<String> =
+    LazyLock::new(|| env::var("FROM_EMAIL").expect("Missing FROM_EMAIL environment variable"));
+
+pub static BASE_URL: LazyLock<String> =
+    LazyLock::new(|| env::var("BASE_URL").expect("Missing BASE_URL environment variable"));
+
 // Regular expressions for validation
 pub static RE_ONLY_LETTERS: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^\p{L}+$").unwrap());
 
