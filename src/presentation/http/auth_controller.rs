@@ -10,7 +10,12 @@ use actix_web::{HttpMessage, HttpRequest, HttpResponse, post, web};
 use std::sync::Arc;
 
 pub fn configure(cfg: &mut web::ServiceConfig) {
-    cfg.service(web::scope("/auth").service(register).service(login));
+    cfg.service(
+        web::scope("/auth")
+            .service(register)
+            .service(login)
+            .service(logout),
+    );
 }
 
 #[post("/register")]
@@ -43,5 +48,14 @@ async fn login(
     Ok(HttpResponse::Ok().json(serde_json::json!({
         "message": "User logged in successfully",
         "data": user
+    })))
+}
+
+#[post("/logout")]
+async fn logout(identity: Identity) -> Result<HttpResponse, ApplicationError> {
+    identity.logout();
+
+    Ok(HttpResponse::Ok().json(serde_json::json!({
+        "message": "User logged out successfully"
     })))
 }
