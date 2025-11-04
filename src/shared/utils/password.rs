@@ -1,6 +1,9 @@
 use argon2::{
     Algorithm, Argon2, Params, PasswordHash, Version,
-    password_hash::{Error, PasswordHasher, PasswordVerifier, SaltString, rand_core::OsRng},
+    password_hash::{
+        Error, PasswordHasher, PasswordVerifier, SaltString,
+        rand_core::{OsRng, RngCore},
+    },
 };
 
 pub fn hash(password: String) -> Result<String, Error> {
@@ -25,4 +28,11 @@ pub fn verify_hash(password: String, hash: String) -> Result<bool, Error> {
         .is_ok();
 
     Ok(is_valid)
+}
+
+pub fn generate_activation_token() -> String {
+    let mut token = [0u8; 32];
+    OsRng.fill_bytes(&mut token);
+
+    hex::encode(token)
 }
