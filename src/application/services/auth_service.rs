@@ -66,6 +66,7 @@ impl AuthService {
             &saved_user.id.to_string(),
             &activation_token,
         )
+        .await
         .map_err(|_| ApplicationError::InternalServerError {
             message: "Failed to store activation token".to_string(),
         })?;
@@ -73,6 +74,7 @@ impl AuthService {
         let username = format!("{} {}", saved_user.first_name, saved_user.last_name);
         self.email_service
             .send_activation_email(&saved_user.email, &username, &activation_token)
+            .await
             .map_err(|_| ApplicationError::InternalServerError {
                 message: "Failed to send activation email".to_string(),
             })?;

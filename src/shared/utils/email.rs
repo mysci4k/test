@@ -2,13 +2,13 @@ use crate::shared::utils::constants::{
     BASE_URL, FROM_EMAIL, SMTP_PASSWORD, SMTP_SERVER, SMTP_USERNAME,
 };
 use lettre::{
-    Message, SmtpTransport, Transport,
+    AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
     message::{MultiPart, SinglePart, header::ContentType},
     transport::smtp::authentication::Credentials,
 };
 
 pub struct EmailService {
-    smtp_transport: SmtpTransport,
+    smtp_transport: AsyncSmtpTransport<Tokio1Executor>,
     from_email: String,
     base_url: String,
 }
@@ -20,7 +20,7 @@ impl EmailService {
 
         let credentials = Credentials::new(SMTP_USERNAME.clone(), SMTP_PASSWORD.clone());
 
-        let smtp_transport = SmtpTransport::relay(&SMTP_SERVER)
+        let smtp_transport = AsyncSmtpTransport::<Tokio1Executor>::relay(&SMTP_SERVER)
             .map_err(|err| format!("Failed to create SMTP transport: {}", err))?
             .credentials(credentials)
             .build();
@@ -32,7 +32,7 @@ impl EmailService {
         })
     }
 
-    pub fn send_activation_email(
+    pub async fn send_activation_email(
         &self,
         to_email: &str,
         username: &str,
@@ -153,7 +153,8 @@ If you did not create an account, please ignore this email."#,
             .map_err(|e| format!("Failed to build email: {}", e))?;
 
         self.smtp_transport
-            .send(&email)
+            .send(email)
+            .await
             .map_err(|e| format!("Failed to send email: {}", e))?;
 
         Ok(())
