@@ -1,6 +1,6 @@
 use crate::{
     application::{
-        dto::{ActivationQueryDto, CreateUserDto, LoginDto},
+        dto::{ActivationQueryDto, CreateUserDto, LoginDto, ResendActivationQueryDto},
         services::AuthService,
     },
     shared::error::ApplicationError,
@@ -15,7 +15,8 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
             .service(register)
             .service(login)
             .service(logout)
-            .service(activate),
+            .service(activate)
+            .service(resend_activation),
     );
 }
 
@@ -67,11 +68,25 @@ async fn activate(
     query: web::Query<ActivationQueryDto>,
 ) -> Result<HttpResponse, ApplicationError> {
     let user = auth_service
-        .activate_user(query.activation_token.clone())
+        .activate_user(query.user_id.clone(), query.activation_token.clone())
         .await?;
 
     Ok(HttpResponse::Ok().json(serde_json::json!({
         "message": "Account activated successfully",
         "data": user
+    })))
+}
+
+#[get("/resend")]
+async fn resend_activation(
+    auth_service: web::Data<Arc<AuthService>>,
+    query: web::Query<ResendActivationQueryDto>,
+) -> Result<HttpResponse, ApplicationError> {
+    auth_service
+        .resend_activation_email(query.email.clone())
+        .await?;
+
+    Ok(HttpResponse::Ok().json(serde_json::json!({
+        "message": "Activation email resent successfully"
     })))
 }

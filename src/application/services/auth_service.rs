@@ -69,7 +69,12 @@ impl AuthService {
 
         let username = format!("{} {}", saved_user.first_name, saved_user.last_name);
         self.email_service
-            .send_activation_email(&saved_user.email, &username, &activation_token)
+            .send_activation_email(
+                &saved_user.email,
+                &username,
+                &saved_user.id.to_string(),
+                &activation_token,
+            )
             .await
             .map_err(|_| ApplicationError::InternalServerError {
                 message: "Failed to send activation email".to_string(),
@@ -134,15 +139,22 @@ impl AuthService {
 
     pub async fn activate_user(
         &self,
+        user_id: String,
         activation_token: String,
     ) -> Result<UserDto, ApplicationError> {
-        let user_id = self
+        let is_valid = self
             .token_service
-            .get_user_id_from_activation_token(&activation_token)
+            .validate_activation_token(&user_id, &activation_token)
             .await
             .map_err(|_| ApplicationError::BadRequest {
                 message: "Invalid or expired activation token".to_string(),
             })?;
+
+        if !is_valid {
+            return Err(ApplicationError::BadRequest {
+                message: "Invalid or expired activation token".to_string(),
+            });
+        }
 
         let user_id = Uuid::parse_str(&user_id).map_err(|_| ApplicationError::BadRequest {
             message: "Invalid user ID in token".to_string(),
@@ -151,7 +163,7 @@ impl AuthService {
         let activated_user = self.user_repository.activate(user_id).await?;
 
         self.token_service
-            .delete_activation_token(&activation_token)
+            .delete_activation_token(&user_id.to_string())
             .await
             .map_err(|_| ApplicationError::InternalServerError {
                 message: "Failed to delete activation token".to_string(),
@@ -167,5 +179,58 @@ impl AuthService {
             created_at: activated_user.created_at,
             updated_at: activated_user.updated_at,
         }))
+    }
+
+    pub async fn resend_activation_email(&self, email: String) -> Result<(), ApplicationError> {
+        let user = self
+            .user_repository
+            .find_by_email(&email)
+            .await?
+            .ok_or_else(|| ApplicationError::NotFound {
+                message: "User with the given email not found".to_string(),
+            })?;
+
+        if user.is_active {
+            return Err(ApplicationError::BadRequest {
+                message: "Account is already activated".to_string(),
+            });
+        }
+
+        let has_token = self
+            .token_service
+            .has_active_token(&user.id.to_string())
+            .await
+            .map_err(|_| ApplicationError::InternalServerError {
+                message: "Failed to check existing activation token".to_string(),
+            })?;
+
+        if has_token {
+            return Err(ApplicationError::BadRequest {
+                message: "An activation email was already sent. Please check your inbox or wait for the token to expire".to_string(),
+            });
+        }
+
+        let activation_token = argon::generate_activation_token();
+        self.token_service
+            .store_activation_token(&user.id.to_string(), &activation_token)
+            .await
+            .map_err(|_| ApplicationError::InternalServerError {
+                message: "Failed to store activation token".to_string(),
+            })?;
+
+        let username = format!("{} {}", user.first_name, user.last_name);
+        self.email_service
+            .send_activation_email(
+                &user.email,
+                &username,
+                &user.id.to_string(),
+                &activation_token,
+            )
+            .await
+            .map_err(|_| ApplicationError::InternalServerError {
+                message: "Failed to send activation email".to_string(),
+            })?;
+
+        Ok(())
     }
 }
