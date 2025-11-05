@@ -1,12 +1,12 @@
 use crate::{
     application::{
-        dto::{CreateUserDto, LoginDto},
+        dto::{ActivationQueryDto, CreateUserDto, LoginDto},
         services::AuthService,
     },
     shared::error::ApplicationError,
 };
 use actix_identity::Identity;
-use actix_web::{HttpMessage, HttpRequest, HttpResponse, post, web};
+use actix_web::{HttpMessage, HttpRequest, HttpResponse, get, post, web};
 use std::sync::Arc;
 
 pub fn configure(cfg: &mut web::ServiceConfig) {
@@ -14,7 +14,8 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
         web::scope("/auth")
             .service(register)
             .service(login)
-            .service(logout),
+            .service(logout)
+            .service(activate),
     );
 }
 
@@ -57,5 +58,20 @@ async fn logout(identity: Identity) -> Result<HttpResponse, ApplicationError> {
 
     Ok(HttpResponse::Ok().json(serde_json::json!({
         "message": "User logged out successfully"
+    })))
+}
+
+#[get("/activate")]
+async fn activate(
+    auth_service: web::Data<Arc<AuthService>>,
+    query: web::Query<ActivationQueryDto>,
+) -> Result<HttpResponse, ApplicationError> {
+    let user = auth_service
+        .activate_user(query.activation_token.clone())
+        .await?;
+
+    Ok(HttpResponse::Ok().json(serde_json::json!({
+        "message": "Account activated successfully",
+        "data": user
     })))
 }
