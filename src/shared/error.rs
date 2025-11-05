@@ -9,6 +9,7 @@ use validator::ValidationErrors;
 pub enum ApplicationError {
     BadRequest { message: String },
     Forbidden,
+    NotFound { message: String },
     Conflict { message: String },
     InternalServerError { message: String },
     ValidationError { message: String },
@@ -52,6 +53,9 @@ impl ResponseError for ApplicationError {
                 "Access denied".to_string(),
                 None,
             ),
+            ApplicationError::NotFound { message } => {
+                (StatusCode::NOT_FOUND, "Not Found", message.clone(), None)
+            }
             ApplicationError::Conflict { message } => {
                 (StatusCode::CONFLICT, "Conflict", message.clone(), None)
             }
@@ -88,6 +92,7 @@ impl ResponseError for ApplicationError {
         match self {
             ApplicationError::BadRequest { .. } => StatusCode::BAD_REQUEST,
             ApplicationError::Forbidden => StatusCode::FORBIDDEN,
+            ApplicationError::NotFound { .. } => StatusCode::NOT_FOUND,
             ApplicationError::Conflict { .. } => StatusCode::CONFLICT,
             ApplicationError::InternalServerError { .. } => StatusCode::INTERNAL_SERVER_ERROR,
             ApplicationError::ValidationError { .. } => StatusCode::BAD_REQUEST,
@@ -101,6 +106,7 @@ impl fmt::Display for ApplicationError {
         match self {
             ApplicationError::BadRequest { message } => write!(f, "Bad request: {}", message),
             ApplicationError::Forbidden => write!(f, "Forbidden"),
+            ApplicationError::NotFound { message } => write!(f, "Not found: {}", message),
             ApplicationError::Conflict { message } => write!(f, "Conflict: {}", message),
             ApplicationError::InternalServerError { message } => {
                 write!(f, "Internal server error: {}", message)
