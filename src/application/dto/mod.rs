@@ -1,5 +1,5 @@
 pub mod auth_dto;
 pub mod user_dto;
 
-pub use auth_dto::LoginDto;
+pub use auth_dto::{ActivationQueryDto, LoginDto};
 pub use user_dto::{CreateUserDto, UserDto};
