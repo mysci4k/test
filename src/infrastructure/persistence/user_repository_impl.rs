@@ -3,10 +3,12 @@ use crate::{
     shared::error::ApplicationError,
 };
 use async_trait::async_trait;
+use chrono::Utc;
 use entity::{UserActiveModel, UserColumn, UserEntity, UserModel};
 use sea_orm::{
     ActiveValue::Set, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter,
 };
+use uuid::Uuid;
 
 pub struct SeaOrmUserRepository {
     db: DatabaseConnection,
@@ -75,5 +77,26 @@ impl UserRepository for SeaOrmUserRepository {
             .map_err(ApplicationError::DatabaseError)?;
 
         Ok(count > 0)
+    }
+
+    async fn activate(&self, id: Uuid) -> Result<User, ApplicationError> {
+        let user = UserEntity::find_by_id(id)
+            .one(&self.db)
+            .await
+            .map_err(ApplicationError::DatabaseError)?
+            .ok_or_else(|| ApplicationError::NotFound {
+                message: "User with the given ID not found".to_string(),
+            })?;
+
+        let mut active_model: UserActiveModel = user.into();
+        active_model.is_active = Set(true);
+        active_model.updated_at = Set(Utc::now().fixed_offset());
+
+        let result = UserEntity::update(active_model)
+            .exec(&self.db)
+            .await
+            .map_err(ApplicationError::DatabaseError)?;
+
+        Ok(Self::to_domain(result))
     }
 }
