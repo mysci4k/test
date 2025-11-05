@@ -1,11 +1,15 @@
 use crate::{
     application::services::AuthService,
-    domain::repositories::UserRepository,
-    infrastructure::persistence::{SeaOrmUserRepository, database},
-    shared::{
-        config::AppState,
-        utils::{constants::REDIS_URL, email::EmailService},
+    domain::{
+        repositories::UserRepository,
+        services::{EmailService, TokenService},
     },
+    infrastructure::{
+        cache::RedisTokenService,
+        email::SmtpEmailService,
+        persistence::{SeaOrmUserRepository, database},
+    },
+    shared::{config::AppState, utils::constants::REDIS_URL},
 };
 use redis::Client as RedisClient;
 use sea_orm::DatabaseConnection;
@@ -13,7 +17,7 @@ use std::sync::Arc;
 use tracing::info;
 
 pub async fn initialize_infrastructure()
--> Result<(DatabaseConnection, RedisClient, Arc<EmailService>), Box<dyn std::error::Error>> {
+-> Result<(DatabaseConnection, RedisClient), Box<dyn std::error::Error>> {
     let database = database::run().await.map_err(|err| {
         eprintln!("Failed to connect to the database: {}", err);
         err
@@ -26,13 +30,7 @@ pub async fn initialize_infrastructure()
     })?;
     info!("Successfully connected to the Redis server");
 
-    let email_service = Arc::new(EmailService::new().map_err(|err| {
-        eprintln!("Failed to initialize email service: {}", err);
-        err
-    })?);
-    info!("Successfully initialized email service");
-
-    Ok((database, redis_client, email_service))
+    Ok((database, redis_client))
 }
 
 pub fn initialize_repositories(database: DatabaseConnection) -> Arc<dyn UserRepository> {
@@ -47,11 +45,16 @@ pub fn initialize_repositories(database: DatabaseConnection) -> Arc<dyn UserRepo
 pub fn initialize_services(
     user_repository: Arc<dyn UserRepository>,
     redis_client: RedisClient,
-    email_service: Arc<EmailService>,
 ) -> AppState {
+    let token_service = Arc::new(RedisTokenService::new(redis_client)) as Arc<dyn TokenService>;
+
+    let email_service =
+        Arc::new(SmtpEmailService::new().expect("Failed to initialize email service"))
+            as Arc<dyn EmailService>;
+
     let auth_service = Arc::new(AuthService::new(
         user_repository.clone(),
-        redis_client,
+        token_service,
         email_service,
     ));
 
