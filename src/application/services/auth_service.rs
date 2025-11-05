@@ -4,10 +4,7 @@ use crate::{
         repositories::{User, UserRepository},
         services::{EmailService, TokenService},
     },
-    shared::{
-        error::ApplicationError,
-        utils::{self},
-    },
+    shared::{error::ApplicationError, utils::argon},
 };
 use actix_web::rt::task;
 use entity::UserModel;
@@ -43,7 +40,7 @@ impl AuthService {
             });
         }
 
-        let hashed_password = task::spawn_blocking(move || utils::password::hash(dto.password))
+        let hashed_password = task::spawn_blocking(move || argon::hash_password(dto.password))
             .await
             .map_err(|_| ApplicationError::InternalServerError {
                 message: "Failed to hash password".to_string(),
@@ -62,7 +59,7 @@ impl AuthService {
 
         let saved_user = self.user_repository.create(user).await?;
 
-        let activation_token = utils::password::generate_activation_token();
+        let activation_token = argon::generate_activation_token();
         self.token_service
             .store_activation_token(&saved_user.id.to_string(), &activation_token)
             .await
@@ -103,7 +100,7 @@ impl AuthService {
 
         let password_valid = task::spawn_blocking({
             let user_password = user.password.clone();
-            move || utils::password::verify_hash(dto.password, user_password)
+            move || argon::verify_password_hash(dto.password, user_password)
         })
         .await
         .map_err(|_| ApplicationError::InternalServerError {

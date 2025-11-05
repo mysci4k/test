@@ -6,7 +6,7 @@ use argon2::{
     },
 };
 
-pub fn hash(password: String) -> Result<String, Error> {
+pub fn hash_password(password: String) -> Result<String, Error> {
     let salt = SaltString::generate(&mut OsRng);
 
     let password_hash = Argon2::new(
@@ -20,7 +20,7 @@ pub fn hash(password: String) -> Result<String, Error> {
     Ok(password_hash)
 }
 
-pub fn verify_hash(password: String, hash: String) -> Result<bool, Error> {
+pub fn verify_password_hash(password: String, hash: String) -> Result<bool, Error> {
     let parsed_hash = PasswordHash::new(&hash)?;
 
     let is_valid = Argon2::default()
