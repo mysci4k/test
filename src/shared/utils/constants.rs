@@ -19,9 +19,16 @@ pub static DATABASE_URL: LazyLock<String> =
 pub static REDIS_URL: LazyLock<String> =
     LazyLock::new(|| env::var("REDIS_URL").expect("Missing REDIS_URL environment variable"));
 
-// Authentication configuration constants
+// Authentication and security configuration constants
 pub static SESSION_KEY: LazyLock<String> =
     LazyLock::new(|| env::var("SESSION_KEY").expect("Missing SESSION_KEY environment variable"));
+
+pub static ACTIVATION_TOKEN_TTL: LazyLock<u64> = LazyLock::new(|| {
+    env::var("ACTIVATION_TOKEN_TTL")
+        .unwrap_or("3600".to_string())
+        .parse()
+        .expect("ACTIVATION_TOKEN_TTL must be a valid u64 number")
+});
 
 // Email configuration constants
 pub static SMTP_SERVER: LazyLock<String> =
