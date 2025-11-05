@@ -13,6 +13,15 @@ pub struct LoginDto {
 #[derive(Debug, Clone, Deserialize, Serialize, Validate)]
 #[serde(rename_all = "camelCase")]
 pub struct ActivationQueryDto {
+    #[validate(length(min = 1, message = "User ID is required"))]
+    pub user_id: String,
     #[validate(length(min = 1, message = "Activation token is required"))]
     pub activation_token: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct ResendActivationQueryDto {
+    #[validate(email(message = "Invalid email format"))]
+    pub email: String,
 }
