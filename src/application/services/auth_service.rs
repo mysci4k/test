@@ -131,4 +131,41 @@ impl AuthService {
             updated_at: user.updated_at,
         }))
     }
+
+    pub async fn activate_user(
+        &self,
+        activation_token: String,
+    ) -> Result<UserDto, ApplicationError> {
+        let user_id = self
+            .token_service
+            .get_user_id_from_activation_token(&activation_token)
+            .await
+            .map_err(|_| ApplicationError::BadRequest {
+                message: "Invalid or expired activation token".to_string(),
+            })?;
+
+        let user_id = Uuid::parse_str(&user_id).map_err(|_| ApplicationError::BadRequest {
+            message: "Invalid user ID in token".to_string(),
+        })?;
+
+        let activated_user = self.user_repository.activate(user_id).await?;
+
+        self.token_service
+            .delete_activation_token(&activation_token)
+            .await
+            .map_err(|_| ApplicationError::InternalServerError {
+                message: "Failed to delete activation token".to_string(),
+            })?;
+
+        Ok(UserDto::from_entity(UserModel {
+            id: activated_user.id,
+            email: activated_user.email,
+            password: activated_user.password,
+            first_name: activated_user.first_name,
+            last_name: activated_user.last_name,
+            is_active: activated_user.is_active,
+            created_at: activated_user.created_at,
+            updated_at: activated_user.updated_at,
+        }))
+    }
 }
