@@ -13,8 +13,8 @@ impl RedisTokenService {
         Self { redis_client }
     }
 
-    fn activation_key(&self, activation_token: &str) -> String {
-        format!("activation_token:{}", activation_token)
+    fn user_activation_key(&self, user_id: &str) -> String {
+        format!("user_activation:{}", user_id)
     }
 }
 
@@ -31,41 +31,56 @@ impl TokenService for RedisTokenService {
             .await
             .map_err(|err| format!("Redis connection error: {}", err))?;
 
-        let key = self.activation_key(activation_token);
-        conn.set_ex(&key, user_id, *ACTIVATION_TOKEN_TTL)
+        let key = self.user_activation_key(user_id);
+        conn.set_ex(&key, activation_token, *ACTIVATION_TOKEN_TTL)
             .await
             .map_err(|err: RedisError| format!("Failed to store token: {}", err))?;
 
         Ok(())
     }
 
-    async fn get_user_id_from_activation_token(
+    async fn validate_activation_token(
         &self,
+        user_id: &str,
         activation_token: &str,
-    ) -> Result<String, String> {
+    ) -> Result<bool, String> {
         let mut conn = self
             .redis_client
             .get_multiplexed_async_connection()
             .await
             .map_err(|err| format!("Redis connection error: {}", err))?;
 
-        let key = self.activation_key(activation_token);
-        let user_id: Option<String> = conn
+        let key = self.user_activation_key(user_id);
+        let stored_token: Option<String> = conn
             .get(&key)
             .await
             .map_err(|err: RedisError| format!("Failed to get token: {}", err))?;
 
-        user_id.ok_or_else(|| "Token not found or expired".to_string())
+        Ok(stored_token.as_deref() == Some(activation_token))
     }
 
-    async fn delete_activation_token(&self, activation_token: &str) -> Result<(), String> {
+    async fn has_active_token(&self, user_id: &str) -> Result<bool, String> {
         let mut conn = self
             .redis_client
             .get_multiplexed_async_connection()
             .await
             .map_err(|err| format!("Redis connection error: {}", err))?;
 
-        let key = self.activation_key(activation_token);
+        let key = self.user_activation_key(user_id);
+
+        conn.exists(&key)
+            .await
+            .map_err(|err: RedisError| format!("Failed to check token existence: {}", err))
+    }
+
+    async fn delete_activation_token(&self, user_id: &str) -> Result<(), String> {
+        let mut conn = self
+            .redis_client
+            .get_multiplexed_async_connection()
+            .await
+            .map_err(|err| format!("Redis connection error: {}", err))?;
+
+        let key = self.user_activation_key(user_id);
         conn.del(&key)
             .await
             .map_err(|err: RedisError| format!("Failed to delete token: {}", err))?;
