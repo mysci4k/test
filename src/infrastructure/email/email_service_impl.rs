@@ -123,9 +123,13 @@ impl EmailService for SmtpEmailService {
         &self,
         to_email: &str,
         username: &str,
+        user_id: &str,
         activation_token: &str,
     ) -> Result<(), String> {
-        let activation_link = format!("{}/api/activate?token={}", self.base_url, activation_token);
+        let activation_link = format!(
+            "{}/api/activate?userId={}?token={}",
+            self.base_url, user_id, activation_token
+        );
 
         let template = EmailTemplate::Activation {
             username: username.to_string(),

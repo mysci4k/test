@@ -32,6 +32,7 @@ pub trait EmailService: Send + Sync {
         &self,
         to_email: &str,
         username: &str,
+        user_id: &str,
         activation_token: &str,
     ) -> Result<(), String>;
 }
