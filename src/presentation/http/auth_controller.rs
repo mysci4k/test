@@ -9,7 +9,7 @@ use crate::{
     shared::error::ApplicationError,
 };
 use actix_identity::Identity;
-use actix_web::{HttpMessage, HttpRequest, HttpResponse, get, post, web};
+use actix_web::{HttpMessage, HttpRequest, HttpResponse, post, web};
 use std::sync::Arc;
 
 pub fn configure(cfg: &mut web::ServiceConfig) {
@@ -67,7 +67,7 @@ async fn logout(identity: Identity) -> Result<HttpResponse, ApplicationError> {
     })))
 }
 
-#[get("/activate")]
+#[post("/activate")]
 async fn activate(
     auth_service: web::Data<Arc<AuthService>>,
     query: web::Query<ActivationQueryDto>,
@@ -82,7 +82,7 @@ async fn activate(
     })))
 }
 
-#[get("/resend")]
+#[post("/resend-activation")]
 async fn resend_activation(
     auth_service: web::Data<Arc<AuthService>>,
     query: web::Query<ResendActivationQueryDto>,
