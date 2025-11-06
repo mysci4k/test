@@ -59,7 +59,7 @@ impl AuthService {
 
         let saved_user = self.user_repository.create(user).await?;
 
-        let activation_token = argon::generate_activation_token();
+        let activation_token = argon::generate_token();
         self.token_service
             .store_activation_token(&saved_user.id.to_string(), &activation_token)
             .await
@@ -210,7 +210,7 @@ impl AuthService {
             });
         }
 
-        let activation_token = argon::generate_activation_token();
+        let activation_token = argon::generate_token();
         self.token_service
             .store_activation_token(&user.id.to_string(), &activation_token)
             .await
@@ -263,7 +263,7 @@ impl AuthService {
             });
         }
 
-        let reset_token = argon::generate_activation_token();
+        let reset_token = argon::generate_token();
         self.token_service
             .store_password_reset_token(&user.id.to_string(), &reset_token)
             .await

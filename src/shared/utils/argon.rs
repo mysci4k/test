@@ -30,7 +30,7 @@ pub fn verify_password_hash(password: String, hash: String) -> Result<bool, Erro
     Ok(is_valid)
 }
 
-pub fn generate_activation_token() -> String {
+pub fn generate_token() -> String {
     let mut token = [0u8; 32];
     OsRng.fill_bytes(&mut token);
 
