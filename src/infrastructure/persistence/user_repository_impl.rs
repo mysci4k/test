@@ -99,4 +99,29 @@ impl UserRepository for SeaOrmUserRepository {
 
         Ok(Self::to_domain(result))
     }
+
+    async fn update_password(
+        &self,
+        id: Uuid,
+        new_password: &str,
+    ) -> Result<User, ApplicationError> {
+        let user = UserEntity::find_by_id(id)
+            .one(&self.db)
+            .await
+            .map_err(ApplicationError::DatabaseError)?
+            .ok_or_else(|| ApplicationError::NotFound {
+                message: "User with the given ID not found".to_string(),
+            })?;
+
+        let mut active_model: UserActiveModel = user.into();
+        active_model.password = Set(new_password.to_string());
+        active_model.updated_at = Set(Utc::now().fixed_offset());
+
+        let result = UserEntity::update(active_model)
+            .exec(&self.db)
+            .await
+            .map_err(ApplicationError::DatabaseError)?;
+
+        Ok(Self::to_domain(result))
+    }
 }

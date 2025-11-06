@@ -44,4 +44,6 @@ pub trait UserRepository: Send + Sync {
     async fn find_by_email(&self, email: &str) -> Result<Option<User>, ApplicationError>;
     async fn exists_by_email(&self, email: &str) -> Result<bool, ApplicationError>;
     async fn activate(&self, id: Uuid) -> Result<User, ApplicationError>;
+    async fn update_password(&self, id: Uuid, new_password: &str)
+    -> Result<User, ApplicationError>;
 }
