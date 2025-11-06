@@ -30,6 +30,13 @@ pub static ACTIVATION_TOKEN_TTL: LazyLock<u64> = LazyLock::new(|| {
         .expect("ACTIVATION_TOKEN_TTL must be a valid u64 number")
 });
 
+pub static PASSWORD_RESET_TOKEN_TTL: LazyLock<u64> = LazyLock::new(|| {
+    env::var("PASSWORD_RESET_TOKEN_TTL")
+        .unwrap_or("3600".to_string())
+        .parse()
+        .expect("PASSWORD_RESET_TOKEN_TTL must be a valid u64 number")
+});
+
 // Email configuration constants
 pub static SMTP_SERVER: LazyLock<String> =
     LazyLock::new(|| env::var("SMTP_SERVER").expect("Missing SMTP_SERVER environment variable"));
