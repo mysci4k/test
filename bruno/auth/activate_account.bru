@@ -1,0 +1,25 @@
+meta {
+  name: Activate account
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{base_url}}/auth/activate?userId=019a5a54-1976-79a1-9d07-dd7259beec04&activationToken=f22a0dfd2771cd3cf8fa3e3465fae2181a6f8fe7887e0fb449640916edbbb1f2
+  body: none
+  auth: inherit
+}
+
+params:query {
+  userId: 019a5a54-1976-79a1-9d07-dd7259beec04
+  activationToken: f22a0dfd2771cd3cf8fa3e3465fae2181a6f8fe7887e0fb449640916edbbb1f2
+}
+
+assert {
+  res.status: eq 200
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
