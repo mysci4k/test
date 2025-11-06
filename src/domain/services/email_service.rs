@@ -6,6 +6,10 @@ pub enum EmailTemplate {
         username: String,
         activation_link: String,
     },
+    PasswordReset {
+        username: String,
+        reset_link: String,
+    },
 }
 
 impl EmailTemplate {
@@ -15,12 +19,17 @@ impl EmailTemplate {
                 "activation/html_template.html",
                 "activation/text_template.txt",
             ),
+            EmailTemplate::PasswordReset { .. } => (
+                "password_reset/html_template.html",
+                "password_reset/text_template.txt",
+            ),
         }
     }
 
     pub fn subject(&self) -> &str {
         match self {
             EmailTemplate::Activation { .. } => "Activate your Kanblast account",
+            EmailTemplate::PasswordReset { .. } => "Reset your Kanblast password",
         }
     }
 }
@@ -34,5 +43,12 @@ pub trait EmailService: Send + Sync {
         username: &str,
         user_id: &str,
         activation_token: &str,
+    ) -> Result<(), String>;
+    async fn send_password_reset_email(
+        &self,
+        to_email: &str,
+        username: &str,
+        user_id: &str,
+        reset_token: &str,
     ) -> Result<(), String>;
 }

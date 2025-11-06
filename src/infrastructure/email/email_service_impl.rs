@@ -51,6 +51,13 @@ impl SmtpEmailService {
                 context.insert("username", username);
                 context.insert("activation_link", activation_link);
             }
+            EmailTemplate::PasswordReset {
+                username,
+                reset_link,
+            } => {
+                context.insert("username", username);
+                context.insert("reset_link", reset_link);
+            }
         }
 
         context
@@ -134,6 +141,26 @@ impl EmailService for SmtpEmailService {
         let template = EmailTemplate::Activation {
             username: username.to_string(),
             activation_link,
+        };
+
+        self.send_email(to_email, template).await
+    }
+
+    async fn send_password_reset_email(
+        &self,
+        to_email: &str,
+        username: &str,
+        user_id: &str,
+        reset_token: &str,
+    ) -> Result<(), String> {
+        let reset_link = format!(
+            "{}/api/reset-password?userId={}&token={}",
+            self.base_url, user_id, reset_token
+        );
+
+        let template = EmailTemplate::PasswordReset {
+            username: username.to_string(),
+            reset_link,
         };
 
         self.send_email(to_email, template).await
