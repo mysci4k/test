@@ -8,6 +8,7 @@ use validator::ValidationErrors;
 #[derive(Debug, Error)]
 pub enum ApplicationError {
     BadRequest { message: String },
+    Unauthorized,
     Forbidden,
     NotFound { message: String },
     Conflict { message: String },
@@ -45,6 +46,12 @@ impl ResponseError for ApplicationError {
                 StatusCode::BAD_REQUEST,
                 "Bad Request",
                 message.clone(),
+                None,
+            ),
+            ApplicationError::Unauthorized => (
+                StatusCode::UNAUTHORIZED,
+                "Unauthorized",
+                "Authentication required".to_string(),
                 None,
             ),
             ApplicationError::Forbidden => (
@@ -91,6 +98,7 @@ impl ResponseError for ApplicationError {
     fn status_code(&self) -> StatusCode {
         match self {
             ApplicationError::BadRequest { .. } => StatusCode::BAD_REQUEST,
+            ApplicationError::Unauthorized => StatusCode::UNAUTHORIZED,
             ApplicationError::Forbidden => StatusCode::FORBIDDEN,
             ApplicationError::NotFound { .. } => StatusCode::NOT_FOUND,
             ApplicationError::Conflict { .. } => StatusCode::CONFLICT,
@@ -105,6 +113,7 @@ impl fmt::Display for ApplicationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             ApplicationError::BadRequest { message } => write!(f, "Bad request: {}", message),
+            ApplicationError::Unauthorized => write!(f, "Unauthorized"),
             ApplicationError::Forbidden => write!(f, "Forbidden"),
             ApplicationError::NotFound { message } => write!(f, "Not found: {}", message),
             ApplicationError::Conflict { message } => write!(f, "Conflict: {}", message),
