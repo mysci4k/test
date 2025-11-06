@@ -1,5 +1,5 @@
 use crate::{
-    application::services::AuthService,
+    application::services::{AuthService, UserService},
     domain::{
         repositories::UserRepository,
         services::{EmailService, TokenService},
@@ -58,7 +58,9 @@ pub fn initialize_services(
         email_service,
     ));
 
+    let user_service = Arc::new(UserService::new(user_repository));
+
     info!("Successfully initialized services");
 
-    AppState::new(auth_service)
+    AppState::new(auth_service, user_service)
 }
