@@ -1,5 +1,5 @@
 use crate::{
-    application::dto::{CreateUserDto, LoginDto, UserDto},
+    application::dto::{CreateUserDto, LoginDto, ResetPasswordDto, UserDto},
     domain::{
         repositories::{User, UserRepository},
         services::{EmailService, TokenService},
@@ -229,6 +229,98 @@ impl AuthService {
             .await
             .map_err(|_| ApplicationError::InternalServerError {
                 message: "Failed to send activation email".to_string(),
+            })?;
+
+        Ok(())
+    }
+
+    pub async fn forgot_password(&self, email: String) -> Result<(), ApplicationError> {
+        let user = self
+            .user_repository
+            .find_by_email(&email)
+            .await?
+            .ok_or_else(|| ApplicationError::NotFound {
+                message: "User with the given email not found".to_string(),
+            })?;
+
+        if !user.is_active {
+            return Err(ApplicationError::BadRequest {
+                message: "Account is not activated. Please activate your account first".to_string(),
+            });
+        }
+
+        let has_token = self
+            .token_service
+            .has_active_password_reset_token(&user.id.to_string())
+            .await
+            .map_err(|_| ApplicationError::InternalServerError {
+                message: "Failed to check existing reset token".to_string(),
+            })?;
+
+        if has_token {
+            return Err(ApplicationError::BadRequest {
+                message: "A password reset email was already sent. Please check your inbox or wait for the token to expire".to_string(),
+            });
+        }
+
+        let reset_token = argon::generate_activation_token();
+        self.token_service
+            .store_password_reset_token(&user.id.to_string(), &reset_token)
+            .await
+            .map_err(|_| ApplicationError::InternalServerError {
+                message: "Failed to store password reset token".to_string(),
+            })?;
+
+        let username = format!("{} {}", user.first_name, user.last_name);
+        self.email_service
+            .send_password_reset_email(&user.email, &username, &user.id.to_string(), &reset_token)
+            .await
+            .map_err(|_| ApplicationError::InternalServerError {
+                message: "Failed to send password reset email".to_string(),
+            })?;
+
+        Ok(())
+    }
+
+    pub async fn reset_password(&self, dto: ResetPasswordDto) -> Result<(), ApplicationError> {
+        dto.validate()?;
+
+        let is_valid = self
+            .token_service
+            .validate_password_reset_token(&dto.user_id, &dto.reset_token)
+            .await
+            .map_err(|_| ApplicationError::BadRequest {
+                message: "Invalid or expired reset token".to_string(),
+            })?;
+
+        if !is_valid {
+            return Err(ApplicationError::BadRequest {
+                message: "Invalid or expired reset token".to_string(),
+            });
+        }
+
+        let user_id = Uuid::parse_str(&dto.user_id).map_err(|_| ApplicationError::BadRequest {
+            message: "Invalid user ID in token".to_string(),
+        })?;
+
+        let hashed_password = task::spawn_blocking(move || argon::hash_password(dto.new_password))
+            .await
+            .map_err(|_| ApplicationError::InternalServerError {
+                message: "Failed to hash new password".to_string(),
+            })?
+            .map_err(|_| ApplicationError::InternalServerError {
+                message: "Password hashing failed".to_string(),
+            })?;
+
+        self.user_repository
+            .update_password(user_id, &hashed_password)
+            .await?;
+
+        self.token_service
+            .delete_password_reset_token(&dto.user_id)
+            .await
+            .map_err(|_| ApplicationError::InternalServerError {
+                message: "Failed to delete password reset token".to_string(),
             })?;
 
         Ok(())
