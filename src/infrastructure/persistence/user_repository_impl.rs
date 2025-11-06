@@ -59,6 +59,15 @@ impl UserRepository for SeaOrmUserRepository {
         Ok(Self::to_domain(result))
     }
 
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<User>, ApplicationError> {
+        let result = UserEntity::find_by_id(id)
+            .one(&self.db)
+            .await
+            .map_err(ApplicationError::DatabaseError)?;
+
+        Ok(result.map(Self::to_domain))
+    }
+
     async fn find_by_email(&self, email: &str) -> Result<Option<User>, ApplicationError> {
         let result = UserEntity::find()
             .filter(UserColumn::Email.eq(email))
