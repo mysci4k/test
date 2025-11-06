@@ -1,6 +1,9 @@
 use crate::{
     application::{
-        dto::{ActivationQueryDto, CreateUserDto, LoginDto, ResendActivationQueryDto},
+        dto::{
+            ActivationQueryDto, CreateUserDto, ForgotPasswordQueryDto, LoginDto,
+            ResendActivationQueryDto, ResetPasswordDto,
+        },
         services::AuthService,
     },
     shared::error::ApplicationError,
@@ -16,7 +19,9 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
             .service(login)
             .service(logout)
             .service(activate)
-            .service(resend_activation),
+            .service(resend_activation)
+            .service(forgot_password)
+            .service(reset_password),
     );
 }
 
@@ -88,5 +93,29 @@ async fn resend_activation(
 
     Ok(HttpResponse::Ok().json(serde_json::json!({
         "message": "Activation email resent successfully"
+    })))
+}
+
+#[post("/forgot-password")]
+async fn forgot_password(
+    auth_service: web::Data<Arc<AuthService>>,
+    query: web::Query<ForgotPasswordQueryDto>,
+) -> Result<HttpResponse, ApplicationError> {
+    auth_service.forgot_password(query.email.clone()).await?;
+
+    Ok(HttpResponse::Ok().json(serde_json::json!({
+        "message": "Password reset email sent successfully"
+    })))
+}
+
+#[post("/reset-password")]
+async fn reset_password(
+    auth_service: web::Data<Arc<AuthService>>,
+    dto: web::Json<ResetPasswordDto>,
+) -> Result<HttpResponse, ApplicationError> {
+    auth_service.reset_password(dto.into_inner()).await?;
+
+    Ok(HttpResponse::Ok().json(serde_json::json!({
+        "message": "Password reset successfully"
     })))
 }
