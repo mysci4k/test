@@ -6,3 +6,8 @@ pub mod board;
 pub mod column;
 pub mod task;
 pub mod user;
+
+pub use user::ActiveModel as UserActiveModel;
+pub use user::Column as UserColumn;
+pub use user::Entity as UserEntity;
+pub use user::Model as UserModel;

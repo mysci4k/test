@@ -1,3 +1,5 @@
+mod application;
+mod domain;
 mod infrastructure;
 mod presentation;
 mod shared;
@@ -5,7 +7,7 @@ mod shared;
 use crate::{
     presentation::http::configure_server,
     shared::{
-        config::initialize_infrastructure,
+        config::{initialize_infrastructure, initialize_repositories, initialize_services},
         utils::constants::{SERVER_ADDRESS, SERVER_PORT},
     },
 };
@@ -24,11 +26,15 @@ async fn main() -> Result<()> {
     tracing::subscriber::set_global_default(subscriber)
         .expect("Failed to set global default subscriber");
 
-    let _database = initialize_infrastructure()
+    let (database, redis_client) = initialize_infrastructure()
         .await
         .expect("Failed to initialize infrastructure");
 
-    let server = configure_server(&SERVER_ADDRESS, *SERVER_PORT).await?;
+    let user_repository = initialize_repositories(database);
+
+    let app_state = initialize_services(user_repository, redis_client);
+
+    let server = configure_server(app_state, &SERVER_ADDRESS, *SERVER_PORT).await?;
 
     server.await
 }

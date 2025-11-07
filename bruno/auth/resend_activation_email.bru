@@ -1,0 +1,24 @@
+meta {
+  name: Resend activation email
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{base_url}}/auth/resend-activation?email=jonsnow@example.com
+  body: none
+  auth: inherit
+}
+
+params:query {
+  email: jonsnow@example.com
+}
+
+assert {
+  res.status: eq 200
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

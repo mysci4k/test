@@ -3,7 +3,7 @@ use sea_orm::{ConnectOptions, ConnectionTrait, Database, DatabaseConnection, DbE
 
 pub async fn run() -> Result<DatabaseConnection, DbErr> {
     let database_url = DATABASE_URL.clone();
-    let database_name = database_url.split('/').last().unwrap().to_string();
+    let database_name = database_url.split('/').next_back().unwrap().to_string();
 
     let mut options = ConnectOptions::new(database_url);
     options.sqlx_logging(false);
