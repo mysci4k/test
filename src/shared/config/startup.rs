@@ -1,13 +1,13 @@
 use crate::{
-    application::services::{AuthService, UserService},
+    application::services::{AuthService, BoardService, UserService},
     domain::{
-        repositories::UserRepository,
+        repositories::{BoardRepository, UserRepository},
         services::{EmailService, TokenService},
     },
     infrastructure::{
         cache::RedisTokenService,
         email::SmtpEmailService,
-        persistence::{SeaOrmUserRepository, database},
+        persistence::{SeaOrmBoardRepository, SeaOrmUserRepository, database},
     },
     shared::{config::AppState, utils::constants::REDIS_URL},
 };
@@ -33,21 +33,25 @@ pub async fn initialize_infrastructure()
     Ok((database, redis_client))
 }
 
-pub fn initialize_repositories(database: DatabaseConnection) -> Arc<dyn UserRepository> {
+pub fn initialize_repositories(
+    database: DatabaseConnection,
+) -> (Arc<dyn UserRepository>, Arc<dyn BoardRepository>) {
     let user_repository =
         Arc::new(SeaOrmUserRepository::new(database.clone())) as Arc<dyn UserRepository>;
+    let board_repository =
+        Arc::new(SeaOrmBoardRepository::new(database.clone())) as Arc<dyn BoardRepository>;
 
     info!("Successfully initialized repositories");
 
-    user_repository
+    (user_repository, board_repository)
 }
 
 pub fn initialize_services(
     user_repository: Arc<dyn UserRepository>,
+    board_repository: Arc<dyn BoardRepository>,
     redis_client: RedisClient,
 ) -> AppState {
     let token_service = Arc::new(RedisTokenService::new(redis_client)) as Arc<dyn TokenService>;
-
     let email_service =
         Arc::new(SmtpEmailService::new().expect("Failed to initialize email service"))
             as Arc<dyn EmailService>;
@@ -57,10 +61,10 @@ pub fn initialize_services(
         token_service,
         email_service,
     ));
-
     let user_service = Arc::new(UserService::new(user_repository));
+    let board_service = Arc::new(BoardService::new(board_repository));
 
     info!("Successfully initialized services");
 
-    AppState::new(auth_service, user_service)
+    AppState::new(auth_service, user_service, board_service)
 }
