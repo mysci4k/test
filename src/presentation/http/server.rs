@@ -1,5 +1,8 @@
 use crate::{
-    presentation::{configure_auth_roures, configure_user_routes, middleware::RequireAuth},
+    presentation::{
+        configure_auth_roures, configure_board_routes, configure_user_routes,
+        middleware::RequireAuth,
+    },
     shared::{
         config::AppState,
         utils::constants::{REDIS_URL, SESSION_KEY},
@@ -36,6 +39,7 @@ pub async fn configure_server(
         App::new()
             .app_data(web::Data::new(app_state.auth_service.clone()))
             .app_data(web::Data::new(app_state.user_service.clone()))
+            .app_data(web::Data::new(app_state.board_service.clone()))
             .wrap(Logger::default())
             .wrap(RequireAuth)
             .wrap(IdentityMiddleware::default())
@@ -49,7 +53,8 @@ pub async fn configure_server(
                 web::scope("/api")
                     .service(health_check)
                     .configure(configure_auth_roures)
-                    .configure(configure_user_routes),
+                    .configure(configure_user_routes)
+                    .configure(configure_board_routes),
             )
     })
     .bind((server_address, server_port))?;
