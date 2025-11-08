@@ -1,0 +1,53 @@
+use crate::{
+    domain::repositories::{Board, BoardRepository},
+    shared::error::ApplicationError,
+};
+use async_trait::async_trait;
+use entity::{BoardActiveModel, BoardEntity, BoardModel};
+use sea_orm::{ActiveValue::Set, DatabaseConnection, EntityTrait};
+
+pub struct SeaOrmBoardRepository {
+    db: DatabaseConnection,
+}
+
+impl SeaOrmBoardRepository {
+    pub fn new(db: DatabaseConnection) -> Self {
+        Self { db }
+    }
+
+    fn to_domain(model: BoardModel) -> Board {
+        Board {
+            id: model.id,
+            name: model.name,
+            description: model.description,
+            owner_id: model.owner_id,
+            created_at: model.created_at,
+            updated_at: model.updated_at,
+        }
+    }
+
+    fn to_active_model(board: Board) -> BoardActiveModel {
+        BoardActiveModel {
+            id: Set(board.id),
+            name: Set(board.name),
+            description: Set(board.description),
+            owner_id: Set(board.owner_id),
+            created_at: Set(board.created_at),
+            updated_at: Set(board.updated_at),
+        }
+    }
+}
+
+#[async_trait]
+impl BoardRepository for SeaOrmBoardRepository {
+    async fn create(&self, board: Board) -> Result<Board, ApplicationError> {
+        let active_model = Self::to_active_model(board);
+
+        let result = BoardEntity::insert(active_model)
+            .exec_with_returning(&self.db)
+            .await
+            .map_err(ApplicationError::DatabaseError)?;
+
+        Ok(Self::to_domain(result))
+    }
+}
