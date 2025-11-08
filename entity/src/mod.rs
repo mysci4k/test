@@ -11,3 +11,8 @@ pub use user::ActiveModel as UserActiveModel;
 pub use user::Column as UserColumn;
 pub use user::Entity as UserEntity;
 pub use user::Model as UserModel;
+
+pub use board::ActiveModel as BoardActiveModel;
+pub use board::Column as BoardColumn;
+pub use board::Entity as BoardEntity;
+pub use board::Model as BoardModel;
