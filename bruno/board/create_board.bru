@@ -1,0 +1,27 @@
+meta {
+  name: Create board
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/board/
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "name": "Board #1",
+    "description": "Example Board #1 description" // Optional field
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
