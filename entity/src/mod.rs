@@ -3,7 +3,9 @@
 pub mod prelude;
 
 pub mod board;
+pub mod board_member;
 pub mod column;
+pub mod sea_orm_active_enums;
 pub mod task;
 pub mod user;
 
