@@ -3,6 +3,7 @@ use derive_more::Error;
 use sea_orm::DbErr;
 use serde::Serialize;
 use std::fmt;
+use utoipa::ToSchema;
 use validator::ValidationErrors;
 
 #[derive(Debug, Error)]
@@ -31,8 +32,8 @@ impl From<ValidationErrors> for ApplicationError {
     }
 }
 
-#[derive(Serialize)]
-struct ErrorResponse {
+#[derive(Serialize, ToSchema)]
+pub struct ErrorResponse {
     error: String,
     message: String,
     #[serde(skip_serializing_if = "Option::is_none")]
