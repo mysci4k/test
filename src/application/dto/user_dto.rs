@@ -2,10 +2,11 @@ use crate::shared::utils::constants::{RE_ONLY_LETTERS, RE_SPECIAL_CHARS};
 use chrono::{DateTime, FixedOffset};
 use entity::UserModel;
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 use uuid::Uuid;
 use validator::Validate;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
+#[derive(Debug, Clone, Serialize, Deserialize, Validate, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateUserDto {
     #[validate(
@@ -55,7 +56,7 @@ pub struct CreateUserDto {
     pub last_name: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct UserDto {
     pub id: Uuid,
