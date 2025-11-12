@@ -1,6 +1,6 @@
 use crate::{
     presentation::{
-        configure_auth_roures, configure_board_routes, configure_user_routes,
+        configure_auth_roures, configure_board_routes, configure_user_routes, http::ApiDoc,
         middleware::RequireAuth,
     },
     shared::{
@@ -18,6 +18,8 @@ use actix_web::{
     web,
 };
 use std::io::Result;
+use utoipa::OpenApi;
+use utoipa_scalar::{Scalar, Servable};
 
 #[get("/")]
 pub async fn health_check() -> impl Responder {
@@ -35,6 +37,8 @@ pub async fn configure_server(
 
     let session_key = Key::from(SESSION_KEY.as_bytes());
 
+    let openapi = ApiDoc::openapi();
+
     let server = HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(app_state.auth_service.clone()))
@@ -49,6 +53,7 @@ pub async fn configure_server(
                     .cookie_name("user-session".to_string())
                     .build(),
             )
+            .service(Scalar::with_url("/scalar", openapi.clone()))
             .service(
                 web::scope("/api")
                     .service(health_check)
