@@ -1,8 +1,9 @@
 use crate::shared::utils::constants::RE_SPECIAL_CHARS;
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 use validator::Validate;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
+#[derive(Debug, Clone, Serialize, Deserialize, Validate, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct LoginDto {
     #[validate(email(message = "Invalid email format"))]
@@ -11,7 +12,7 @@ pub struct LoginDto {
     pub password: String,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, Validate)]
+#[derive(Debug, Clone, Deserialize, Serialize, Validate, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ActivationQueryDto {
     #[validate(length(min = 1, message = "User ID is required"))]
@@ -20,21 +21,21 @@ pub struct ActivationQueryDto {
     pub activation_token: String,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, Validate)]
+#[derive(Debug, Clone, Deserialize, Serialize, Validate, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ResendActivationQueryDto {
     #[validate(email(message = "Invalid email format"))]
     pub email: String,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, Validate)]
+#[derive(Debug, Clone, Deserialize, Serialize, Validate, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ForgotPasswordQueryDto {
     #[validate(email(message = "Invalid email format"))]
     pub email: String,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, Validate)]
+#[derive(Debug, Clone, Deserialize, Serialize, Validate, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ResetPasswordDto {
     #[validate(length(min = 1, message = "User ID is required"))]
