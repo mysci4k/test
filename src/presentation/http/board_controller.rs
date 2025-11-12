@@ -1,6 +1,9 @@
 use crate::{
-    application::{dto::CreateBoardDto, services::BoardService},
-    shared::error::ApplicationError,
+    application::{
+        dto::{BoardDto, CreateBoardDto},
+        services::BoardService,
+    },
+    shared::error::{ApplicationError, ErrorResponse},
 };
 use actix_web::{HttpResponse, post, web};
 use std::sync::Arc;
@@ -10,6 +13,21 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
     cfg.service(web::scope("/board").service(create_board));
 }
 
+#[utoipa::path(
+    post,
+    description = "Creates a new board",
+    path = "/board/",
+    request_body = CreateBoardDto,
+    responses(
+        (status = 201, description = "Board created successfully", body = BoardDto),
+        (status = 400, description = "Bad Request", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse)
+    ),
+    tag = "Board",
+    security(
+        ("session_cookie" = [])
+    )
+)]
 #[post("/")]
 async fn create_board(
     board_service: web::Data<Arc<BoardService>>,
