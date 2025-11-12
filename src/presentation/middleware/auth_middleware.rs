@@ -51,7 +51,10 @@ where
         Box::pin(async move {
             let path = req.path().to_string();
 
-            if path == "/api/" || (path.starts_with("/api/auth") && path != "/api/auth/logout") {
+            if path == "/api/"
+                || (path.starts_with("/api/auth") && path != "/api/auth/logout")
+                || path.starts_with("/scalar")
+            {
                 return service.call(req).await;
             }
 
