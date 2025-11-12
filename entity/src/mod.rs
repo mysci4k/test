@@ -18,3 +18,20 @@ pub use board::ActiveModel as BoardActiveModel;
 pub use board::Column as BoardColumn;
 pub use board::Entity as BoardEntity;
 pub use board::Model as BoardModel;
+
+pub use board_member::ActiveModel as BoardMemberActiveModel;
+pub use board_member::Column as BoardMemberColumn;
+pub use board_member::Entity as BoardMemberEntity;
+pub use board_member::Model as BoardMemberModel;
+
+pub use column::ActiveModel as ColumnActiveModel;
+pub use column::Column as ColumnColumn;
+pub use column::Entity as ColumnEntity;
+pub use column::Model as ColumnModel;
+
+pub use task::ActiveModel as TaskActiveModel;
+pub use task::Column as TaskColumn;
+pub use task::Entity as TaskEntity;
+pub use task::Model as TaskModel;
+
+pub use sea_orm_active_enums::BoardMemberRoleEnum;
