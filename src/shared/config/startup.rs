@@ -1,13 +1,15 @@
 use crate::{
     application::services::{AuthService, BoardService, UserService},
     domain::{
-        repositories::{BoardRepository, UserRepository},
+        repositories::{BoardMemberRepository, BoardRepository, UserRepository},
         services::{EmailService, TokenService},
     },
     infrastructure::{
         cache::RedisTokenService,
         email::SmtpEmailService,
-        persistence::{SeaOrmBoardRepository, SeaOrmUserRepository, database},
+        persistence::{
+            SeaOrmBoardMemberRepository, SeaOrmBoardRepository, SeaOrmUserRepository, database,
+        },
     },
     shared::{config::AppState, utils::constants::REDIS_URL},
 };
@@ -35,20 +37,27 @@ pub async fn initialize_infrastructure()
 
 pub fn initialize_repositories(
     database: DatabaseConnection,
-) -> (Arc<dyn UserRepository>, Arc<dyn BoardRepository>) {
+) -> (
+    Arc<dyn UserRepository>,
+    Arc<dyn BoardRepository>,
+    Arc<dyn BoardMemberRepository>,
+) {
     let user_repository =
         Arc::new(SeaOrmUserRepository::new(database.clone())) as Arc<dyn UserRepository>;
     let board_repository =
         Arc::new(SeaOrmBoardRepository::new(database.clone())) as Arc<dyn BoardRepository>;
+    let board_member_repository = Arc::new(SeaOrmBoardMemberRepository::new(database.clone()))
+        as Arc<dyn BoardMemberRepository>;
 
     info!("Successfully initialized repositories");
 
-    (user_repository, board_repository)
+    (user_repository, board_repository, board_member_repository)
 }
 
 pub fn initialize_services(
     user_repository: Arc<dyn UserRepository>,
     board_repository: Arc<dyn BoardRepository>,
+    board_member_repository: Arc<dyn BoardMemberRepository>,
     redis_client: RedisClient,
 ) -> AppState {
     let token_service = Arc::new(RedisTokenService::new(redis_client)) as Arc<dyn TokenService>;
@@ -62,7 +71,7 @@ pub fn initialize_services(
         email_service,
     ));
     let user_service = Arc::new(UserService::new(user_repository));
-    let board_service = Arc::new(BoardService::new(board_repository));
+    let board_service = Arc::new(BoardService::new(board_repository, board_member_repository));
 
     info!("Successfully initialized services");
 

@@ -30,9 +30,15 @@ async fn main() -> Result<()> {
         .await
         .expect("Failed to initialize infrastructure");
 
-    let (user_repository, board_repository) = initialize_repositories(database);
+    let (user_repository, board_repository, board_member_repository) =
+        initialize_repositories(database);
 
-    let app_state = initialize_services(user_repository, board_repository, redis_client);
+    let app_state = initialize_services(
+        user_repository,
+        board_repository,
+        board_member_repository,
+        redis_client,
+    );
 
     let server = configure_server(app_state, &SERVER_ADDRESS, *SERVER_PORT).await?;
 
