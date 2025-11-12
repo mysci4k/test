@@ -1,0 +1,35 @@
+use crate::shared::error::ApplicationError;
+use async_trait::async_trait;
+use chrono::{DateTime, FixedOffset, Utc};
+use entity::BoardMemberRoleEnum;
+use uuid::Uuid;
+
+#[derive(Debug, Clone)]
+pub struct BoardMember {
+    pub id: Uuid,
+    pub board_id: Uuid,
+    pub user_id: Uuid,
+    pub role: BoardMemberRoleEnum,
+    pub created_at: DateTime<FixedOffset>,
+    pub updated_at: DateTime<FixedOffset>,
+}
+
+impl BoardMember {
+    pub fn new(id: Uuid, board_id: Uuid, user_id: Uuid, role: BoardMemberRoleEnum) -> Self {
+        let now = Utc::now().fixed_offset();
+
+        Self {
+            id,
+            board_id,
+            user_id,
+            role,
+            created_at: now,
+            updated_at: now,
+        }
+    }
+}
+
+#[async_trait]
+pub trait BoardMemberRepository: Send + Sync {
+    async fn create(&self, board_member: BoardMember) -> Result<BoardMember, ApplicationError>;
+}
