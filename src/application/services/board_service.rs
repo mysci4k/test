@@ -1,20 +1,27 @@
 use crate::{
     application::dto::{BoardDto, CreateBoardDto},
-    domain::repositories::{Board, BoardRepository},
+    domain::repositories::{Board, BoardMember, BoardMemberRepository, BoardRepository},
     shared::error::ApplicationError,
 };
-use entity::BoardModel;
+use entity::{BoardMemberRoleEnum, BoardModel};
 use std::sync::Arc;
 use uuid::Uuid;
 use validator::Validate;
 
 pub struct BoardService {
     board_repository: Arc<dyn BoardRepository>,
+    board_member_repository: Arc<dyn BoardMemberRepository>,
 }
 
 impl BoardService {
-    pub fn new(board_repository: Arc<dyn BoardRepository>) -> Self {
-        Self { board_repository }
+    pub fn new(
+        board_repository: Arc<dyn BoardRepository>,
+        board_member_repository: Arc<dyn BoardMemberRepository>,
+    ) -> Self {
+        Self {
+            board_repository,
+            board_member_repository,
+        }
     }
 
     pub async fn create_board(
@@ -24,9 +31,19 @@ impl BoardService {
     ) -> Result<BoardDto, ApplicationError> {
         dto.validate()?;
 
-        let board = Board::new(Uuid::now_v7(), dto.name, dto.description, owner_id);
+        let board_id = Uuid::now_v7();
+        let board = Board::new(board_id, dto.name, dto.description, owner_id);
 
         let saved_board = self.board_repository.create(board).await?;
+
+        let board_member = BoardMember::new(
+            Uuid::now_v7(),
+            board_id,
+            owner_id,
+            BoardMemberRoleEnum::Owner,
+        );
+
+        self.board_member_repository.create(board_member).await?;
 
         Ok(BoardDto::from_entity(BoardModel {
             id: saved_board.id,
