@@ -33,3 +33,5 @@ lettre = { version = "0.11.19", features = ["tokio1-native-tls"] }
 hex = "0.4.3"
 tera = "1.20.1"
 futures-util = "0.3.31"
+utoipa = { version = "5.4.0", features = ["actix_extras", "uuid", "chrono", "preserve_order", "preserve_path_order"] }
+utoipa-scalar = { version = "0.3.0", features = ["actix-web"] }
