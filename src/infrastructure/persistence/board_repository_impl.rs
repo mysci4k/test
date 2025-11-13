@@ -3,8 +3,12 @@ use crate::{
     shared::error::ApplicationError,
 };
 use async_trait::async_trait;
-use entity::{BoardActiveModel, BoardEntity, BoardModel};
-use sea_orm::{ActiveValue::Set, DatabaseConnection, EntityTrait};
+use entity::{BoardActiveModel, BoardEntity, BoardMemberColumn, BoardModel, BoardRelation};
+use sea_orm::{
+    ActiveValue::Set, ColumnTrait, DatabaseConnection, EntityTrait, JoinType, QueryFilter,
+    QuerySelect, RelationTrait,
+};
+use uuid::Uuid;
 
 pub struct SeaOrmBoardRepository {
     db: DatabaseConnection,
@@ -49,5 +53,16 @@ impl BoardRepository for SeaOrmBoardRepository {
             .map_err(ApplicationError::DatabaseError)?;
 
         Ok(Self::to_domain(result))
+    }
+
+    async fn find_by_membership(&self, user_id: Uuid) -> Result<Vec<Board>, ApplicationError> {
+        let result = BoardEntity::find()
+            .join(JoinType::InnerJoin, BoardRelation::BoardMember.def())
+            .filter(BoardMemberColumn::UserId.eq(user_id))
+            .all(&self.db)
+            .await
+            .map_err(ApplicationError::DatabaseError)?;
+
+        Ok(result.into_iter().map(Self::to_domain).collect())
     }
 }
