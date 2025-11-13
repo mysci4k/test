@@ -55,6 +55,29 @@ impl BoardService {
         }))
     }
 
+    pub async fn get_board_by_id(
+        &self,
+        board_id: Uuid,
+        user_id: Uuid,
+    ) -> Result<BoardDto, ApplicationError> {
+        let board = self
+            .board_repository
+            .find_by_id(board_id, user_id)
+            .await?
+            .ok_or_else(|| ApplicationError::NotFound {
+                message: "Board with the given ID not found".to_string(),
+            })?;
+
+        Ok(BoardDto::from_entity(BoardModel {
+            id: board.id,
+            name: board.name,
+            description: board.description,
+            owner_id: board.owner_id,
+            created_at: board.created_at,
+            updated_at: board.updated_at,
+        }))
+    }
+
     pub async fn get_boards_by_membership(
         &self,
         user_id: Uuid,
