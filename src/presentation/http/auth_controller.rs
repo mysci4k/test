@@ -6,10 +6,13 @@ use crate::{
         },
         services::AuthService,
     },
-    shared::error::{ApplicationError, ErrorResponse},
+    shared::{
+        error::{ApplicationError, ErrorResponse},
+        response::{ApiResponse, ApiResponseSchema},
+    },
 };
 use actix_identity::Identity;
-use actix_web::{HttpMessage, HttpRequest, HttpResponse, post, web};
+use actix_web::{HttpMessage, HttpRequest, post, web};
 use std::sync::Arc;
 
 pub fn configure(cfg: &mut web::ServiceConfig) {
@@ -31,7 +34,7 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
     path = "/auth/register",
     request_body=CreateUserDto,
     responses(
-        (status = 201, description = "User registered successfully", body = UserDto),
+        (status = 201, description = "User registered successfully", body = ApiResponseSchema<UserDto>),
         (status = 400, description = "Bad Request", body = ErrorResponse),
         (status = 409, description = "User already exists", body = ErrorResponse)
     ),
@@ -41,13 +44,14 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
 async fn register(
     auth_service: web::Data<Arc<AuthService>>,
     dto: web::Json<CreateUserDto>,
-) -> Result<HttpResponse, ApplicationError> {
+) -> Result<ApiResponse<UserDto>, ApplicationError> {
     let user = auth_service.register(dto.into_inner()).await?;
 
-    Ok(HttpResponse::Created().json(serde_json::json!({
-        "message": "User registered successfully. Please check your email to activate your account",
-        "data": user
-    })))
+    Ok(ApiResponse::Created {
+        message: "User registered successfully. Please check your email to activate your account"
+            .to_string(),
+        data: user,
+    })
 }
 
 #[utoipa::path(
@@ -56,7 +60,7 @@ async fn register(
     path = "/auth/login",
     request_body=LoginDto,
     responses(
-        (status = 200, description = "User logged in successfully", body = UserDto),
+        (status = 200, description = "User logged in successfully", body = ApiResponseSchema<UserDto>),
         (status = 400, description = "Bad Request", body = ErrorResponse),
         (status = 401, description = "Invalid credentials", body = ErrorResponse)
     ),
@@ -67,7 +71,7 @@ async fn login(
     auth_service: web::Data<Arc<AuthService>>,
     dto: web::Json<LoginDto>,
     req: HttpRequest,
-) -> Result<HttpResponse, ApplicationError> {
+) -> Result<ApiResponse<UserDto>, ApplicationError> {
     let user = auth_service.login(dto.into_inner()).await?;
 
     Identity::login(&req.extensions(), user.id.to_string()).map_err(|_| {
@@ -76,10 +80,10 @@ async fn login(
         }
     })?;
 
-    Ok(HttpResponse::Ok().json(serde_json::json!({
-        "message": "User logged in successfully",
-        "data": user
-    })))
+    Ok(ApiResponse::Ok {
+        message: "User logged in successfully".to_string(),
+        data: Some(user),
+    })
 }
 
 #[utoipa::path(
@@ -87,7 +91,7 @@ async fn login(
     description = "Logs out the currently authenticated user by invalidating their session",
     path = "/auth/logout",
     responses(
-        (status = 200, description = "User logged out successfully"),
+        (status = 200, description = "User logged out successfully", body = ApiResponseSchema<String>),
         (status = 401, description = "Unauthorized", body = ErrorResponse)
     ),
     tag = "Authentication",
@@ -96,12 +100,13 @@ async fn login(
     )
 )]
 #[post("/logout")]
-async fn logout(identity: Identity) -> Result<HttpResponse, ApplicationError> {
+async fn logout(identity: Identity) -> Result<ApiResponse<String>, ApplicationError> {
     identity.logout();
 
-    Ok(HttpResponse::Ok().json(serde_json::json!({
-        "message": "User logged out successfully"
-    })))
+    Ok(ApiResponse::Ok {
+        message: "User logged out successfully".to_string(),
+        data: None,
+    })
 }
 
 #[utoipa::path(
@@ -113,7 +118,7 @@ async fn logout(identity: Identity) -> Result<HttpResponse, ApplicationError> {
         ("activationToken" = String, Query, description = "Activation token received via email")
     ),
     responses(
-        (status = 200, description = "Account activated successfully", body = UserDto),
+        (status = 200, description = "Account activated successfully", body = ApiResponseSchema<UserDto>),
         (status = 400, description = "Bad Request", body = ErrorResponse),
         (status = 404, description = "User not found", body = ErrorResponse),
         (status = 409, description = "Account already activated", body = ErrorResponse)
@@ -124,15 +129,15 @@ async fn logout(identity: Identity) -> Result<HttpResponse, ApplicationError> {
 async fn activate(
     auth_service: web::Data<Arc<AuthService>>,
     query: web::Query<ActivationQueryDto>,
-) -> Result<HttpResponse, ApplicationError> {
+) -> Result<ApiResponse<UserDto>, ApplicationError> {
     let user = auth_service
         .activate_user(query.user_id.clone(), query.activation_token.clone())
         .await?;
 
-    Ok(HttpResponse::Ok().json(serde_json::json!({
-        "message": "Account activated successfully",
-        "data": user
-    })))
+    Ok(ApiResponse::Ok {
+        message: "Account activated successfully".to_string(),
+        data: Some(user),
+    })
 }
 
 #[utoipa::path(
@@ -143,7 +148,7 @@ async fn activate(
         ("email" = String, Query, description = "Email address to resend activation link")
     ),
     responses(
-        (status = 200, description = "Activation email resent successfully"),
+        (status = 200, description = "Activation email resent successfully", body = ApiResponseSchema<String>),
         (status = 400, description = "Bad Request", body = ErrorResponse),
         (status = 404, description = "User not found", body = ErrorResponse),
         (status = 409, description = "Account already activated", body = ErrorResponse)
@@ -154,14 +159,15 @@ async fn activate(
 async fn resend_activation(
     auth_service: web::Data<Arc<AuthService>>,
     query: web::Query<ResendActivationQueryDto>,
-) -> Result<HttpResponse, ApplicationError> {
+) -> Result<ApiResponse<String>, ApplicationError> {
     auth_service
         .resend_activation_email(query.email.clone())
         .await?;
 
-    Ok(HttpResponse::Ok().json(serde_json::json!({
-        "message": "Activation email resent successfully"
-    })))
+    Ok(ApiResponse::Ok {
+        message: "Activation email resent successfully".to_string(),
+        data: None,
+    })
 }
 
 #[utoipa::path(
@@ -172,7 +178,7 @@ async fn resend_activation(
         ("email" = String, Query, description = "Email address to send password reset link")
     ),
     responses(
-        (status = 200, description = "Password reset email sent successfully"),
+        (status = 200, description = "Password reset email sent successfully", body = ApiResponseSchema<String>),
         (status = 400, description = "Bad Request", body = ErrorResponse),
         (status = 404, description = "User not found", body = ErrorResponse)
     ),
@@ -182,12 +188,13 @@ async fn resend_activation(
 async fn forgot_password(
     auth_service: web::Data<Arc<AuthService>>,
     query: web::Query<ForgotPasswordQueryDto>,
-) -> Result<HttpResponse, ApplicationError> {
+) -> Result<ApiResponse<String>, ApplicationError> {
     auth_service.forgot_password(query.email.clone()).await?;
 
-    Ok(HttpResponse::Ok().json(serde_json::json!({
-        "message": "Password reset email sent successfully"
-    })))
+    Ok(ApiResponse::Ok {
+        message: "Password reset email sent successfully".to_string(),
+        data: None,
+    })
 }
 
 #[utoipa::path(
@@ -196,7 +203,7 @@ async fn forgot_password(
     path = "/auth/reset-password",
     request_body=ResetPasswordDto,
     responses(
-        (status = 200, description = "Password reset successfully"),
+        (status = 200, description = "Password reset successfully", body = ApiResponseSchema<String>),
         (status = 400, description = "Bad Request", body = ErrorResponse),
         (status = 404, description = "User not found", body = ErrorResponse),
         (status = 409, description = "Invalid or expired reset token", body = ErrorResponse)
@@ -207,10 +214,11 @@ async fn forgot_password(
 async fn reset_password(
     auth_service: web::Data<Arc<AuthService>>,
     dto: web::Json<ResetPasswordDto>,
-) -> Result<HttpResponse, ApplicationError> {
+) -> Result<ApiResponse<String>, ApplicationError> {
     auth_service.reset_password(dto.into_inner()).await?;
 
-    Ok(HttpResponse::Ok().json(serde_json::json!({
-        "message": "Password reset successfully"
-    })))
+    Ok(ApiResponse::Ok {
+        message: "Password reset successfully".to_string(),
+        data: None,
+    })
 }

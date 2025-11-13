@@ -1,8 +1,11 @@
 use crate::{
     application::{dto::UserDto, services::UserService},
-    shared::error::{ApplicationError, ErrorResponse},
+    shared::{
+        error::{ApplicationError, ErrorResponse},
+        response::{ApiResponse, ApiResponseSchema},
+    },
 };
-use actix_web::{HttpResponse, get, web};
+use actix_web::{get, web};
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -15,7 +18,7 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
     description = "Retrieves the profile of the authenticated user",
     path = "/user/profile",
     responses(
-        (status = 200, description = "User profile retrieved successfully", body = UserDto),
+        (status = 200, description = "User profile retrieved successfully", body = ApiResponseSchema<UserDto>),
         (status = 401, description = "Unauthorized", body = ErrorResponse),
         (status = 404, description = "User not found", body = ErrorResponse)
     ),
@@ -28,12 +31,14 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
 async fn get_user_profile(
     user_service: web::Data<Arc<UserService>>,
     user_id: web::ReqData<Uuid>,
-) -> Result<HttpResponse, ApplicationError> {
+) -> Result<ApiResponse<UserDto>, ApplicationError> {
     let user_id = user_id.into_inner();
     let user = user_service.get_user_by_id(user_id).await?;
 
-    Ok(HttpResponse::Ok().json(serde_json::json!({
-        "message": "User profile retrieved successfully",
-        "data": user
-    })))
+    Ok(ApiResponse::Found {
+        message: "User profile retrieved successfully".to_string(),
+        data: user,
+        page: None,
+        total_pages: None,
+    })
 }
