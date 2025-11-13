@@ -55,6 +55,21 @@ impl BoardRepository for SeaOrmBoardRepository {
         Ok(Self::to_domain(result))
     }
 
+    async fn find_by_id(
+        &self,
+        board_id: Uuid,
+        user_id: Uuid,
+    ) -> Result<Option<Board>, ApplicationError> {
+        let result = BoardEntity::find_by_id(board_id)
+            .join(JoinType::InnerJoin, BoardRelation::BoardMember.def())
+            .filter(BoardMemberColumn::UserId.eq(user_id))
+            .one(&self.db)
+            .await
+            .map_err(ApplicationError::DatabaseError)?;
+
+        Ok(result.map(Self::to_domain))
+    }
+
     async fn find_by_membership(&self, user_id: Uuid) -> Result<Vec<Board>, ApplicationError> {
         let result = BoardEntity::find()
             .join(JoinType::InnerJoin, BoardRelation::BoardMember.def())

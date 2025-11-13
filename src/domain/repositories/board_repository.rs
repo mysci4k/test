@@ -31,5 +31,10 @@ impl Board {
 #[async_trait]
 pub trait BoardRepository: Send + Sync {
     async fn create(&self, board: Board) -> Result<Board, ApplicationError>;
+    async fn find_by_id(
+        &self,
+        board_id: Uuid,
+        user_id: Uuid,
+    ) -> Result<Option<Board>, ApplicationError>;
     async fn find_by_membership(&self, user_id: Uuid) -> Result<Vec<Board>, ApplicationError>;
 }
