@@ -54,4 +54,25 @@ impl BoardService {
             updated_at: saved_board.updated_at,
         }))
     }
+
+    pub async fn get_boards_by_membership(
+        &self,
+        user_id: Uuid,
+    ) -> Result<Vec<BoardDto>, ApplicationError> {
+        let boards = self.board_repository.find_by_membership(user_id).await?;
+
+        Ok(boards
+            .into_iter()
+            .map(|board| {
+                BoardDto::from_entity(BoardModel {
+                    id: board.id,
+                    name: board.name,
+                    description: board.description,
+                    owner_id: board.owner_id,
+                    created_at: board.created_at,
+                    updated_at: board.updated_at,
+                })
+            })
+            .collect())
+    }
 }
