@@ -16,6 +16,7 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/board")
             .service(create_board)
+            .service(get_board)
             .service(get_user_boards),
     );
 }
@@ -49,6 +50,38 @@ async fn create_board(
     Ok(ApiResponse::Created {
         message: "Board created successfully".to_string(),
         data: board,
+    })
+}
+
+#[utoipa::path(
+    get,
+    description = "Retrieves a board by its ID",
+    path = "/board/{board_id}",
+    responses(
+        (status = 200, description = "Board data retrieved successfully", body = ApiResponseSchema<BoardDto>),
+        (status = 401, description = "Unauthorized", body = ApplicationErrorSchema),
+        (status = 404, description = "Board not found", body = ApplicationErrorSchema)
+    ),
+    tag = "Board",
+    security(
+        ("session_cookie" = [])
+    )
+)]
+#[get("/{board_id}")]
+async fn get_board(
+    board_service: web::Data<Arc<BoardService>>,
+    board_id: web::Path<Uuid>,
+    user_id: web::ReqData<Uuid>,
+) -> Result<ApiResponse<BoardDto>, ApplicationError> {
+    let board_id = board_id.into_inner();
+    let user_id = user_id.into_inner();
+    let board = board_service.get_board_by_id(board_id, user_id).await?;
+
+    Ok(ApiResponse::Found {
+        message: "Board data retrieved successfully".to_string(),
+        data: board,
+        page: None,
+        total_pages: None,
     })
 }
 
