@@ -24,6 +24,7 @@ use utoipa::{
 
         // Board endpoints
         crate::presentation::http::board_controller::create_board,
+        crate::presentation::http::board_controller::get_board,
         crate::presentation::http::board_controller::get_user_boards
     ),
     components(
