@@ -1,7 +1,7 @@
 use crate::{
     application::{dto::UserDto, services::UserService},
     shared::{
-        error::{ApplicationError, ErrorResponse},
+        error::{ApplicationError, ApplicationErrorSchema},
         response::{ApiResponse, ApiResponseSchema},
     },
 };
@@ -19,8 +19,8 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
     path = "/user/profile",
     responses(
         (status = 200, description = "User profile retrieved successfully", body = ApiResponseSchema<UserDto>),
-        (status = 401, description = "Unauthorized", body = ErrorResponse),
-        (status = 404, description = "User not found", body = ErrorResponse)
+        (status = 401, description = "Unauthorized", body = ApplicationErrorSchema),
+        (status = 404, description = "User not found", body = ApplicationErrorSchema)
     ),
     tag = "User",
     security(

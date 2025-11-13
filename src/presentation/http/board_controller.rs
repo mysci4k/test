@@ -4,7 +4,7 @@ use crate::{
         services::BoardService,
     },
     shared::{
-        error::{ApplicationError, ErrorResponse},
+        error::{ApplicationError, ApplicationErrorSchema},
         response::{ApiResponse, ApiResponseSchema},
     },
 };
@@ -23,8 +23,8 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
     request_body = CreateBoardDto,
     responses(
         (status = 201, description = "Board created successfully", body = ApiResponseSchema<BoardDto>),
-        (status = 400, description = "Bad Request", body = ErrorResponse),
-        (status = 401, description = "Unauthorized", body = ErrorResponse)
+        (status = 400, description = "Bad Request", body = ApplicationErrorSchema),
+        (status = 401, description = "Unauthorized", body = ApplicationErrorSchema)
     ),
     tag = "Board",
     security(

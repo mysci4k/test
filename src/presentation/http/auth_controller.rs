@@ -7,7 +7,7 @@ use crate::{
         services::AuthService,
     },
     shared::{
-        error::{ApplicationError, ErrorResponse},
+        error::{ApplicationError, ApplicationErrorSchema},
         response::{ApiResponse, ApiResponseSchema},
     },
 };
@@ -35,8 +35,8 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
     request_body=CreateUserDto,
     responses(
         (status = 201, description = "User registered successfully", body = ApiResponseSchema<UserDto>),
-        (status = 400, description = "Bad Request", body = ErrorResponse),
-        (status = 409, description = "User already exists", body = ErrorResponse)
+        (status = 400, description = "Bad Request", body = ApplicationErrorSchema),
+        (status = 409, description = "User already exists", body = ApplicationErrorSchema)
     ),
     tag = "Authentication"
 )]
@@ -61,8 +61,8 @@ async fn register(
     request_body=LoginDto,
     responses(
         (status = 200, description = "User logged in successfully", body = ApiResponseSchema<UserDto>),
-        (status = 400, description = "Bad Request", body = ErrorResponse),
-        (status = 401, description = "Invalid credentials", body = ErrorResponse)
+        (status = 400, description = "Bad Request", body = ApplicationErrorSchema),
+        (status = 401, description = "Invalid credentials", body = ApplicationErrorSchema)
     ),
     tag = "Authentication"
 )]
@@ -75,7 +75,7 @@ async fn login(
     let user = auth_service.login(dto.into_inner()).await?;
 
     Identity::login(&req.extensions(), user.id.to_string()).map_err(|_| {
-        ApplicationError::InternalServerError {
+        ApplicationError::InternalError {
             message: "Failed to create user session".to_string(),
         }
     })?;
@@ -92,7 +92,7 @@ async fn login(
     path = "/auth/logout",
     responses(
         (status = 200, description = "User logged out successfully", body = ApiResponseSchema<String>),
-        (status = 401, description = "Unauthorized", body = ErrorResponse)
+        (status = 401, description = "Unauthorized", body = ApplicationErrorSchema)
     ),
     tag = "Authentication",
     security(
@@ -119,9 +119,9 @@ async fn logout(identity: Identity) -> Result<ApiResponse<String>, ApplicationEr
     ),
     responses(
         (status = 200, description = "Account activated successfully", body = ApiResponseSchema<UserDto>),
-        (status = 400, description = "Bad Request", body = ErrorResponse),
-        (status = 404, description = "User not found", body = ErrorResponse),
-        (status = 409, description = "Account already activated", body = ErrorResponse)
+        (status = 400, description = "Bad Request", body = ApplicationErrorSchema),
+        (status = 404, description = "User not found", body = ApplicationErrorSchema),
+        (status = 409, description = "Account already activated", body = ApplicationErrorSchema)
     ),
     tag = "Authentication"
 )]
@@ -149,9 +149,9 @@ async fn activate(
     ),
     responses(
         (status = 200, description = "Activation email resent successfully", body = ApiResponseSchema<String>),
-        (status = 400, description = "Bad Request", body = ErrorResponse),
-        (status = 404, description = "User not found", body = ErrorResponse),
-        (status = 409, description = "Account already activated", body = ErrorResponse)
+        (status = 400, description = "Bad Request", body = ApplicationErrorSchema),
+        (status = 404, description = "User not found", body = ApplicationErrorSchema),
+        (status = 409, description = "Account already activated", body = ApplicationErrorSchema)
     ),
     tag = "Authentication"
 )]
@@ -179,8 +179,8 @@ async fn resend_activation(
     ),
     responses(
         (status = 200, description = "Password reset email sent successfully", body = ApiResponseSchema<String>),
-        (status = 400, description = "Bad Request", body = ErrorResponse),
-        (status = 404, description = "User not found", body = ErrorResponse)
+        (status = 400, description = "Bad Request", body = ApplicationErrorSchema),
+        (status = 404, description = "User not found", body = ApplicationErrorSchema)
     ),
     tag = "Authentication"
 )]
@@ -204,9 +204,9 @@ async fn forgot_password(
     request_body=ResetPasswordDto,
     responses(
         (status = 200, description = "Password reset successfully", body = ApiResponseSchema<String>),
-        (status = 400, description = "Bad Request", body = ErrorResponse),
-        (status = 404, description = "User not found", body = ErrorResponse),
-        (status = 409, description = "Invalid or expired reset token", body = ErrorResponse)
+        (status = 400, description = "Bad Request", body = ApplicationErrorSchema),
+        (status = 404, description = "User not found", body = ApplicationErrorSchema),
+        (status = 409, description = "Invalid or expired reset token", body = ApplicationErrorSchema)
     ),
     tag = "Authentication"
 )]

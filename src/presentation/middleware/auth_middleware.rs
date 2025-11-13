@@ -69,7 +69,10 @@ where
                 return service.call(req).await;
             }
 
-            Err(ApplicationError::Unauthorized.into())
+            Err(ApplicationError::Unauthorized {
+                message: "Authentication required".to_string(),
+            }
+            .into())
         })
     }
 }
