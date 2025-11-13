@@ -1,21 +1,46 @@
-use actix_web::{HttpResponse, ResponseError, http::StatusCode};
-use derive_more::Error;
+use actix_web::{
+    HttpResponse, ResponseError,
+    body::BoxBody,
+    http::{StatusCode, header::ContentType},
+};
+use derive_more::{Display, Error};
 use sea_orm::DbErr;
 use serde::Serialize;
-use std::fmt;
 use utoipa::ToSchema;
 use validator::ValidationErrors;
 
-#[derive(Debug, Error)]
+#[derive(Debug, Serialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ApplicationErrorSchema {
+    status_code: u16,
+    error: String,
+    message: String,
+}
+
+#[derive(Debug, Display, Error)]
 pub enum ApplicationError {
+    #[display("Bad Request")]
     BadRequest { message: String },
-    Unauthorized,
-    Forbidden,
+    #[display("Unauthorized")]
+    Unauthorized { message: String },
+    #[display("Forbidden")]
+    Forbidden { message: String },
+    #[display("Not Found")]
     NotFound { message: String },
+    #[display("Conflict")]
     Conflict { message: String },
-    InternalServerError { message: String },
-    ValidationError { message: String },
+    #[display("Internal Server Error")]
+    InternalError { message: String },
+    #[display("Validation Error")]
+    ValidationError { message: ValidationErrors },
+    #[display("Database Error")]
     DatabaseError(DbErr),
+}
+
+impl From<ValidationErrors> for ApplicationError {
+    fn from(err: ValidationErrors) -> Self {
+        ApplicationError::ValidationError { message: err }
+    }
 }
 
 impl From<DbErr> for ApplicationError {
@@ -24,108 +49,44 @@ impl From<DbErr> for ApplicationError {
     }
 }
 
-impl From<ValidationErrors> for ApplicationError {
-    fn from(err: ValidationErrors) -> Self {
-        ApplicationError::ValidationError {
-            message: format!("{}", err),
+impl ApplicationError {
+    fn message(&self) -> String {
+        match self {
+            ApplicationError::BadRequest { message } => message.to_owned(),
+            ApplicationError::Unauthorized { message } => message.to_owned(),
+            ApplicationError::Forbidden { message } => message.to_owned(),
+            ApplicationError::NotFound { message } => message.to_owned(),
+            ApplicationError::Conflict { message } => message.to_owned(),
+            ApplicationError::InternalError { message } => message.to_owned(),
+            ApplicationError::ValidationError { message } => message.to_string(),
+            ApplicationError::DatabaseError(err) => err.to_string(),
         }
     }
-}
-
-#[derive(Serialize, ToSchema)]
-pub struct ErrorResponse {
-    error: String,
-    message: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    details: Option<String>,
 }
 
 impl ResponseError for ApplicationError {
-    fn error_response(&self) -> HttpResponse {
-        let (status, error_type, message, details) = match self {
-            ApplicationError::BadRequest { message } => (
-                StatusCode::BAD_REQUEST,
-                "Bad Request",
-                message.clone(),
-                None,
-            ),
-            ApplicationError::Unauthorized => (
-                StatusCode::UNAUTHORIZED,
-                "Unauthorized",
-                "Authentication required".to_string(),
-                None,
-            ),
-            ApplicationError::Forbidden => (
-                StatusCode::FORBIDDEN,
-                "Forbidden",
-                "Access denied".to_string(),
-                None,
-            ),
-            ApplicationError::NotFound { message } => {
-                (StatusCode::NOT_FOUND, "Not Found", message.clone(), None)
-            }
-            ApplicationError::Conflict { message } => {
-                (StatusCode::CONFLICT, "Conflict", message.clone(), None)
-            }
-            ApplicationError::InternalServerError { message } => (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "Internal Server Error",
-                message.clone(),
-                None,
-            ),
-            ApplicationError::ValidationError { message } => (
-                StatusCode::BAD_REQUEST,
-                "Validation Error",
-                message.clone(),
-                None,
-            ),
-            ApplicationError::DatabaseError(err) => (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "Database Error",
-                "A database error occurred".to_string(),
-                Some(err.to_string()),
-            ),
-        };
-
-        let error_response = ErrorResponse {
-            error: error_type.to_string(),
-            message,
-            details,
-        };
-
-        HttpResponse::build(status).json(error_response)
-    }
-
     fn status_code(&self) -> StatusCode {
-        match self {
+        match *self {
             ApplicationError::BadRequest { .. } => StatusCode::BAD_REQUEST,
-            ApplicationError::Unauthorized => StatusCode::UNAUTHORIZED,
-            ApplicationError::Forbidden => StatusCode::FORBIDDEN,
+            ApplicationError::Unauthorized { .. } => StatusCode::UNAUTHORIZED,
+            ApplicationError::Forbidden { .. } => StatusCode::FORBIDDEN,
             ApplicationError::NotFound { .. } => StatusCode::NOT_FOUND,
             ApplicationError::Conflict { .. } => StatusCode::CONFLICT,
-            ApplicationError::InternalServerError { .. } => StatusCode::INTERNAL_SERVER_ERROR,
+            ApplicationError::InternalError { .. } => StatusCode::INTERNAL_SERVER_ERROR,
             ApplicationError::ValidationError { .. } => StatusCode::BAD_REQUEST,
-            ApplicationError::DatabaseError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            ApplicationError::DatabaseError { .. } => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
-}
 
-impl fmt::Display for ApplicationError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            ApplicationError::BadRequest { message } => write!(f, "Bad request: {}", message),
-            ApplicationError::Unauthorized => write!(f, "Unauthorized"),
-            ApplicationError::Forbidden => write!(f, "Forbidden"),
-            ApplicationError::NotFound { message } => write!(f, "Not found: {}", message),
-            ApplicationError::Conflict { message } => write!(f, "Conflict: {}", message),
-            ApplicationError::InternalServerError { message } => {
-                write!(f, "Internal server error: {}", message)
-            }
+    fn error_response(&self) -> HttpResponse<BoxBody> {
+        let response_body = ApplicationErrorSchema {
+            message: self.message(),
+            status_code: self.status_code().as_u16(),
+            error: self.to_string(),
+        };
 
-            ApplicationError::ValidationError { message } => {
-                write!(f, "Validation error: {}", message)
-            }
-            ApplicationError::DatabaseError(err) => write!(f, "Database error: {}", err),
-        }
+        HttpResponse::build(self.status_code())
+            .insert_header(ContentType::json())
+            .json(response_body)
     }
 }
