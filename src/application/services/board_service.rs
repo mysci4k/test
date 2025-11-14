@@ -1,8 +1,9 @@
 use crate::{
-    application::dto::{BoardDto, CreateBoardDto},
+    application::dto::{BoardDto, CreateBoardDto, UpdateBoardDto},
     domain::repositories::{Board, BoardMember, BoardMemberRepository, BoardRepository},
     shared::error::ApplicationError,
 };
+use chrono::Utc;
 use entity::{BoardMemberRoleEnum, BoardModel};
 use std::sync::Arc;
 use uuid::Uuid;
@@ -97,5 +98,53 @@ impl BoardService {
                 })
             })
             .collect())
+    }
+
+    pub async fn update_board(
+        &self,
+        dto: UpdateBoardDto,
+        board_id: Uuid,
+        user_id: Uuid,
+    ) -> Result<BoardDto, ApplicationError> {
+        dto.validate()?;
+
+        let mut board = self
+            .board_repository
+            .find_by_id(board_id, user_id)
+            .await?
+            .ok_or_else(|| ApplicationError::NotFound {
+                message: "Board with the given ID not found".to_string(),
+            })?;
+
+        if !self
+            .board_member_repository
+            .check_permissions(
+                board_id,
+                user_id,
+                vec![BoardMemberRoleEnum::Owner, BoardMemberRoleEnum::Moderator],
+            )
+            .await?
+        {
+            return Err(ApplicationError::Forbidden {
+                message: "You don't have permission to perform this action".to_string(),
+            });
+        }
+
+        if let Some(name) = dto.name {
+            board.name = name;
+        }
+        board.description = dto.description;
+        board.updated_at = Utc::now().fixed_offset();
+
+        let updated_board = self.board_repository.update(board).await?;
+
+        Ok(BoardDto::from_entity(BoardModel {
+            id: updated_board.id,
+            name: updated_board.name,
+            description: updated_board.description,
+            owner_id: updated_board.owner_id,
+            created_at: updated_board.created_at,
+            updated_at: updated_board.updated_at,
+        }))
     }
 }
