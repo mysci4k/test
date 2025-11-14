@@ -32,4 +32,10 @@ impl BoardMember {
 #[async_trait]
 pub trait BoardMemberRepository: Send + Sync {
     async fn create(&self, board_member: BoardMember) -> Result<BoardMember, ApplicationError>;
+    async fn check_permissions(
+        &self,
+        board_id: Uuid,
+        user_id: Uuid,
+        member_roles: Vec<BoardMemberRoleEnum>,
+    ) -> Result<bool, ApplicationError>;
 }

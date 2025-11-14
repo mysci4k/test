@@ -3,8 +3,14 @@ use crate::{
     shared::error::ApplicationError,
 };
 use async_trait::async_trait;
-use entity::{BoardMemberActiveModel, BoardMemberEntity, BoardMemberModel};
-use sea_orm::{ActiveValue::Set, DatabaseConnection, EntityTrait};
+use entity::{
+    BoardMemberActiveModel, BoardMemberColumn, BoardMemberEntity, BoardMemberModel,
+    BoardMemberRoleEnum,
+};
+use sea_orm::{
+    ActiveValue::Set, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter,
+};
+use uuid::Uuid;
 
 pub struct SeaOrmBoardMemberRepository {
     db: DatabaseConnection,
@@ -49,5 +55,22 @@ impl BoardMemberRepository for SeaOrmBoardMemberRepository {
             .map_err(ApplicationError::DatabaseError)?;
 
         Ok(Self::to_domain(result))
+    }
+
+    async fn check_permissions(
+        &self,
+        board_id: Uuid,
+        user_id: Uuid,
+        member_roles: Vec<BoardMemberRoleEnum>,
+    ) -> Result<bool, ApplicationError> {
+        let count = BoardMemberEntity::find()
+            .filter(BoardMemberColumn::BoardId.eq(board_id))
+            .filter(BoardMemberColumn::UserId.eq(user_id))
+            .filter(BoardMemberColumn::Role.is_in(member_roles))
+            .count(&self.db)
+            .await
+            .map_err(ApplicationError::DatabaseError)?;
+
+        Ok(count > 0)
     }
 }
