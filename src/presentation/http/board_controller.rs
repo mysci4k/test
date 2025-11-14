@@ -1,6 +1,6 @@
 use crate::{
     application::{
-        dto::{BoardDto, CreateBoardDto},
+        dto::{BoardDto, CreateBoardDto, UpdateBoardDto},
         services::BoardService,
     },
     shared::{
@@ -8,7 +8,7 @@ use crate::{
         response::{ApiResponse, ApiResponseSchema},
     },
 };
-use actix_web::{get, post, web};
+use actix_web::{get, post, put, web};
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -17,7 +17,8 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
         web::scope("/board")
             .service(create_board)
             .service(get_board)
-            .service(get_user_boards),
+            .service(get_user_boards)
+            .service(update_board),
     );
 }
 
@@ -111,5 +112,39 @@ async fn get_user_boards(
         data: boards,
         page: None,
         total_pages: None,
+    })
+}
+
+#[utoipa::path(
+    put,
+    description = "Updates an existing board",
+    path = "/board/{board_id}",
+    request_body = UpdateBoardDto,
+    responses(
+        (status = 200, description = "Board updated successfully", body = ApiResponseSchema<BoardDto>),
+        (status = 403, description = "You don't have permission to perform this action", body = ApplicationErrorSchema),
+        (status = 404, description = "Board with the given ID not found", body = ApplicationErrorSchema)
+    ),
+    tag = "Board",
+    security(
+        ("session_cookie" = [])
+    )
+)]
+#[put("/{board_id}")]
+async fn update_board(
+    board_service: web::Data<Arc<BoardService>>,
+    dto: web::Json<UpdateBoardDto>,
+    board_id: web::Path<Uuid>,
+    user_id: web::ReqData<Uuid>,
+) -> Result<ApiResponse<BoardDto>, ApplicationError> {
+    let board_id = board_id.into_inner();
+    let user_id = user_id.into_inner();
+    let board = board_service
+        .update_board(dto.into_inner(), board_id, user_id)
+        .await?;
+
+    Ok(ApiResponse::Updated {
+        message: "Board updated successfully".to_string(),
+        data: board,
     })
 }
