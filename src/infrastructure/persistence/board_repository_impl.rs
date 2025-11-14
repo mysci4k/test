@@ -80,4 +80,15 @@ impl BoardRepository for SeaOrmBoardRepository {
 
         Ok(result.into_iter().map(Self::to_domain).collect())
     }
+
+    async fn update(&self, board: Board) -> Result<Board, ApplicationError> {
+        let active_model = Self::to_active_model(board);
+
+        let result = BoardEntity::update(active_model)
+            .exec(&self.db)
+            .await
+            .map_err(ApplicationError::DatabaseError)?;
+
+        Ok(Self::to_domain(result))
+    }
 }
