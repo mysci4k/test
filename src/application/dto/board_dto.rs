@@ -21,6 +21,22 @@ pub struct CreateBoardDto {
     pub description: Option<String>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, Validate, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateBoardDto {
+    #[validate(length(
+        min = 1,
+        max = 100,
+        message = "Board name must be between 1 and 100 characters long"
+    ))]
+    pub name: Option<String>,
+    #[validate(length(
+        max = 1000,
+        message = "Board description must be at most 1000 characters long"
+    ))]
+    pub description: Option<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct BoardDto {

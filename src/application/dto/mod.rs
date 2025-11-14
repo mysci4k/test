@@ -6,5 +6,5 @@ pub use auth_dto::{
     ActivationQueryDto, ForgotPasswordQueryDto, LoginDto, ResendActivationQueryDto,
     ResetPasswordDto,
 };
-pub use board_dto::{BoardDto, CreateBoardDto};
+pub use board_dto::{BoardDto, CreateBoardDto, UpdateBoardDto};
 pub use user_dto::{CreateUserDto, UserDto};
