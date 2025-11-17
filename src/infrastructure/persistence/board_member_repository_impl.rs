@@ -4,12 +4,13 @@ use crate::{
 };
 use async_trait::async_trait;
 use entity::{
-    BoardMemberActiveModel, BoardMemberColumn, BoardMemberEntity, BoardMemberModel,
-    BoardMemberRoleEnum,
+    BoardColumn, BoardEntity, BoardMemberActiveModel, BoardMemberColumn, BoardMemberEntity,
+    BoardMemberModel, BoardMemberRoleEnum,
 };
 use sea_orm::{
-    ActiveValue::Set, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter,
+    ActiveValue::Set, ConnectionTrait, DatabaseConnection, DbErr, EntityTrait, FromQueryResult,
 };
+use sea_query::{Alias, Expr, ExprTrait, Query};
 use uuid::Uuid;
 
 pub struct SeaOrmBoardMemberRepository {
@@ -63,14 +64,60 @@ impl BoardMemberRepository for SeaOrmBoardMemberRepository {
         user_id: Uuid,
         member_roles: Vec<BoardMemberRoleEnum>,
     ) -> Result<bool, ApplicationError> {
-        let count = BoardMemberEntity::find()
-            .filter(BoardMemberColumn::BoardId.eq(board_id))
-            .filter(BoardMemberColumn::UserId.eq(user_id))
-            .filter(BoardMemberColumn::Role.is_in(member_roles))
-            .count(&self.db)
-            .await
-            .map_err(ApplicationError::DatabaseError)?;
+        #[derive(FromQueryResult)]
+        struct PermissionCheck {
+            board_exists: bool,
+            has_permission: bool,
+        }
 
-        Ok(count > 0)
+        let board_exists_subquery = Query::select()
+            .expr(Expr::value(1))
+            .from(BoardEntity)
+            .and_where(Expr::col((BoardEntity, BoardColumn::Id)).eq(board_id))
+            .to_owned();
+
+        let permission_subquery = Query::select()
+            .expr(Expr::value(1))
+            .from(BoardMemberEntity)
+            .and_where(Expr::col((BoardMemberEntity, BoardMemberColumn::BoardId)).eq(board_id))
+            .and_where(Expr::col((BoardMemberEntity, BoardMemberColumn::UserId)).eq(user_id))
+            .and_where(
+                Expr::col((BoardMemberEntity, BoardMemberColumn::Role))
+                    .cast_as(Alias::new("text"))
+                    .is_in(member_roles),
+            )
+            .to_owned();
+
+        let query = Query::select()
+            .expr_as(
+                Expr::exists(board_exists_subquery),
+                Alias::new("board_exists"),
+            )
+            .expr_as(
+                Expr::exists(permission_subquery),
+                Alias::new("has_permission"),
+            )
+            .to_owned();
+
+        let builder = self.db.get_database_backend();
+        let statement = builder.build(&query);
+
+        let result = PermissionCheck::find_by_statement(statement)
+            .one(&self.db)
+            .await
+            .map_err(ApplicationError::DatabaseError)?
+            .ok_or_else(|| {
+                ApplicationError::DatabaseError(DbErr::RecordNotFound(
+                    "Query returned no results".to_string(),
+                ))
+            })?;
+
+        if !result.board_exists {
+            return Err(ApplicationError::NotFound {
+                message: "Board with the given ID not found".to_string(),
+            });
+        }
+
+        Ok(result.has_permission)
     }
 }
