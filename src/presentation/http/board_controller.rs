@@ -1,6 +1,6 @@
 use crate::{
     application::{
-        dto::{BoardDto, CreateBoardDto, UpdateBoardDto},
+        dto::{AddBoardMemberDto, BoardDto, BoardMemberDto, CreateBoardDto, UpdateBoardDto},
         services::BoardService,
     },
     shared::{
@@ -18,6 +18,7 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
             .service(create_board)
             .service(get_board)
             .service(get_user_boards)
+            .service(add_new_board_member)
             .service(update_board),
     );
 }
@@ -146,5 +147,39 @@ async fn update_board(
     Ok(ApiResponse::Updated {
         message: "Board updated successfully".to_string(),
         data: board,
+    })
+}
+
+#[utoipa::path(
+    post,
+    description = "Adds a new member to a board",
+    path = "/board/member",
+    request_body = AddBoardMemberDto,
+    responses(
+        (status = 201, description = "New board member added successfully", body = ApiResponseSchema<BoardMemberDto>),
+        (status = 400, description = "Bad Request", body = ApplicationErrorSchema),
+        (status = 401, description = "Unauthorized", body = ApplicationErrorSchema),
+        (status = 403, description = "You don't have permission to perform this action", body = ApplicationErrorSchema),
+        (status = 404, description = "Board with the given ID not found", body = ApplicationErrorSchema)
+    ),
+    tag = "Board",
+    security(
+        ("session_cookie" = [])
+    )
+)]
+#[post("/member")]
+async fn add_new_board_member(
+    board_service: web::Data<Arc<BoardService>>,
+    dto: web::Json<AddBoardMemberDto>,
+    user_id: web::ReqData<Uuid>,
+) -> Result<ApiResponse<BoardMemberDto>, ApplicationError> {
+    let user_id = user_id.into_inner();
+    let board_member = board_service
+        .add_board_member(dto.into_inner(), user_id)
+        .await?;
+
+    Ok(ApiResponse::Created {
+        message: "New board member added successfully".to_string(),
+        data: board_member,
     })
 }
