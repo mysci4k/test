@@ -70,8 +70,12 @@ pub fn initialize_services(
         token_service,
         email_service,
     ));
-    let user_service = Arc::new(UserService::new(user_repository));
-    let board_service = Arc::new(BoardService::new(board_repository, board_member_repository));
+    let user_service = Arc::new(UserService::new(user_repository.clone()));
+    let board_service = Arc::new(BoardService::new(
+        user_repository,
+        board_repository,
+        board_member_repository,
+    ));
 
     info!("Successfully initialized services");
 
