@@ -28,6 +28,7 @@ use utoipa::{
         crate::presentation::http::board_controller::get_board,
         crate::presentation::http::board_controller::get_user_boards,
         crate::presentation::http::board_controller::update_board,
+        crate::presentation::http::board_controller::remove_board_member,
         crate::presentation::http::board_controller::add_new_board_member
     ),
     components(
