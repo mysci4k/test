@@ -8,7 +8,7 @@ use crate::{
         response::{ApiResponse, ApiResponseSchema},
     },
 };
-use actix_web::{get, post, put, web};
+use actix_web::{delete, get, post, put, web};
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -19,6 +19,7 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
             .service(get_board)
             .service(get_user_boards)
             .service(add_new_board_member)
+            .service(remove_board_member)
             .service(update_board),
     );
 }
@@ -181,5 +182,39 @@ async fn add_new_board_member(
     Ok(ApiResponse::Created {
         message: "New board member added successfully".to_string(),
         data: board_member,
+    })
+}
+
+#[utoipa::path(
+    delete,
+    description = "Removes a member from a board",
+    path = "/board/member",
+    request_body = AddBoardMemberDto,
+    responses(
+        (status = 200, description = "Board member removed successfully", body = ApiResponseSchema<u64>),
+        (status = 400, description = "Bad Request", body = ApplicationErrorSchema),
+        (status = 401, description = "Unauthorized", body = ApplicationErrorSchema),
+        (status = 403, description = "You don't have permission to perform this action", body = ApplicationErrorSchema),
+        (status = 404, description = "Board with the given ID not found", body = ApplicationErrorSchema)
+    ),
+    tag = "Board",
+    security(
+        ("session_cookie" = [])
+    )
+)]
+#[delete("/member")]
+async fn remove_board_member(
+    board_service: web::Data<Arc<BoardService>>,
+    dto: web::Json<AddBoardMemberDto>,
+    user_id: web::ReqData<Uuid>,
+) -> Result<ApiResponse<u64>, ApplicationError> {
+    let user_id = user_id.into_inner();
+    let board_member = board_service
+        .delete_board_member(dto.into_inner(), user_id)
+        .await?;
+
+    Ok(ApiResponse::Deleted {
+        message: "Board member removed successfully".to_string(),
+        rows_affected: board_member,
     })
 }
