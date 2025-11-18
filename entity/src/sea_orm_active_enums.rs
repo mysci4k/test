@@ -21,3 +21,13 @@ pub enum BoardMemberRoleEnum {
     #[sea_orm(string_value = "member")]
     Member,
 }
+
+impl BoardMemberRoleEnum {
+    pub fn hierarchy_value(&self) -> u8 {
+        match self {
+            BoardMemberRoleEnum::Owner => 3,
+            BoardMemberRoleEnum::Moderator => 2,
+            BoardMemberRoleEnum::Member => 1,
+        }
+    }
+}
