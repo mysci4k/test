@@ -8,7 +8,8 @@ use entity::{
     BoardMemberModel, BoardMemberRoleEnum,
 };
 use sea_orm::{
-    ActiveValue::Set, ConnectionTrait, DatabaseConnection, DbErr, EntityTrait, FromQueryResult,
+    ActiveValue::Set, ColumnTrait, ConnectionTrait, DatabaseConnection, DbErr, EntityTrait,
+    FromQueryResult, QueryFilter,
 };
 use sea_query::{Alias, Expr, ExprTrait, Query};
 use uuid::Uuid;
@@ -56,6 +57,21 @@ impl BoardMemberRepository for SeaOrmBoardMemberRepository {
             .map_err(ApplicationError::DatabaseError)?;
 
         Ok(Self::to_domain(result))
+    }
+
+    async fn get_role(
+        &self,
+        board_id: Uuid,
+        user_id: Uuid,
+    ) -> Result<Option<BoardMemberRoleEnum>, ApplicationError> {
+        let result = BoardMemberEntity::find()
+            .filter(BoardMemberColumn::BoardId.eq(board_id))
+            .filter(BoardMemberColumn::UserId.eq(user_id))
+            .one(&self.db)
+            .await
+            .map_err(ApplicationError::DatabaseError)?;
+
+        Ok(result.map(|m| m.role))
     }
 
     async fn check_permissions(
@@ -119,5 +135,16 @@ impl BoardMemberRepository for SeaOrmBoardMemberRepository {
         }
 
         Ok(result.has_permission)
+    }
+
+    async fn delete(&self, board_id: Uuid, user_id: Uuid) -> Result<u64, ApplicationError> {
+        let result = BoardMemberEntity::delete_many()
+            .filter(BoardMemberColumn::BoardId.eq(board_id))
+            .filter(BoardMemberColumn::UserId.eq(user_id))
+            .exec(&self.db)
+            .await
+            .map_err(ApplicationError::DatabaseError)?;
+
+        Ok(result.rows_affected)
     }
 }
