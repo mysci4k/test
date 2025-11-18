@@ -200,4 +200,61 @@ impl BoardService {
             updated_at: saved_board_member.updated_at,
         }))
     }
+
+    pub async fn delete_board_member(
+        &self,
+        dto: AddBoardMemberDto,
+        user_id: Uuid,
+    ) -> Result<u64, ApplicationError> {
+        dto.validate()?;
+
+        if dto.user_id == user_id {
+            return Err(ApplicationError::BadRequest {
+                message: "You cannot remove yourself from the board".to_string(),
+            });
+        }
+
+        if !self
+            .board_member_repository
+            .check_permissions(
+                dto.board_id,
+                user_id,
+                vec![BoardMemberRoleEnum::Owner, BoardMemberRoleEnum::Moderator],
+            )
+            .await?
+        {
+            return Err(ApplicationError::Forbidden {
+                message: "You don't have permission to perform this action".to_string(),
+            });
+        }
+
+        let requester_role = self
+            .board_member_repository
+            .get_role(dto.board_id, user_id)
+            .await?
+            .ok_or_else(|| ApplicationError::Forbidden {
+                message: "You are not a member of this board".to_string(),
+            })?;
+
+        let target_role = self
+            .board_member_repository
+            .get_role(dto.board_id, dto.user_id)
+            .await?
+            .ok_or_else(|| ApplicationError::NotFound {
+                message: "The specified user is not a member of this board".to_string(),
+            })?;
+
+        if requester_role.hierarchy_value() <= target_role.hierarchy_value() {
+            return Err(ApplicationError::Forbidden {
+                message: "You cannot remove a member with equal or higher role".to_string(),
+            });
+        }
+
+        let deleted_board_member = self
+            .board_member_repository
+            .delete(dto.board_id, dto.user_id)
+            .await?;
+
+        Ok(deleted_board_member)
+    }
 }
