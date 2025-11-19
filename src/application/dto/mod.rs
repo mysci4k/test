@@ -8,5 +8,7 @@ pub use auth_dto::{
     ResetPasswordDto,
 };
 pub use board_dto::{BoardDto, CreateBoardDto, UpdateBoardDto};
-pub use board_member_dto::{AddBoardMemberDto, BoardMemberDto};
+pub use board_member_dto::{
+    AddBoardMemberDto, BoardMemberDto, DeleteBoardMemberDto, UpdateBoardMemberRoleDto,
+};
 pub use user_dto::{CreateUserDto, UserDto};

@@ -11,6 +11,19 @@ pub struct AddBoardMemberDto {
     pub user_id: Uuid,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, Validate, ToSchema)]
+pub struct UpdateBoardMemberRoleDto {
+    pub board_id: Uuid,
+    pub user_id: Uuid,
+    pub role: BoardMemberRoleEnum,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Validate, ToSchema)]
+pub struct DeleteBoardMemberDto {
+    pub board_id: Uuid,
+    pub user_id: Uuid,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct BoardMemberDto {
