@@ -32,6 +32,11 @@ impl BoardMember {
 #[async_trait]
 pub trait BoardMemberRepository: Send + Sync {
     async fn create(&self, board_member: BoardMember) -> Result<BoardMember, ApplicationError>;
+    async fn find_by_board_and_user_id(
+        &self,
+        board_id: Uuid,
+        user_id: Uuid,
+    ) -> Result<Option<BoardMember>, ApplicationError>;
     async fn get_role(
         &self,
         board_id: Uuid,
@@ -43,5 +48,6 @@ pub trait BoardMemberRepository: Send + Sync {
         user_id: Uuid,
         member_roles: Vec<BoardMemberRoleEnum>,
     ) -> Result<bool, ApplicationError>;
+    async fn update(&self, board_member: BoardMember) -> Result<BoardMember, ApplicationError>;
     async fn delete(&self, board_id: Uuid, user_id: Uuid) -> Result<u64, ApplicationError>;
 }

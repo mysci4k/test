@@ -59,6 +59,21 @@ impl BoardMemberRepository for SeaOrmBoardMemberRepository {
         Ok(Self::to_domain(result))
     }
 
+    async fn find_by_board_and_user_id(
+        &self,
+        board_id: Uuid,
+        user_id: Uuid,
+    ) -> Result<Option<BoardMember>, ApplicationError> {
+        let result = BoardMemberEntity::find()
+            .filter(BoardMemberColumn::BoardId.eq(board_id))
+            .filter(BoardMemberColumn::UserId.eq(user_id))
+            .one(&self.db)
+            .await
+            .map_err(ApplicationError::DatabaseError)?;
+
+        Ok(result.map(Self::to_domain))
+    }
+
     async fn get_role(
         &self,
         board_id: Uuid,
@@ -135,6 +150,17 @@ impl BoardMemberRepository for SeaOrmBoardMemberRepository {
         }
 
         Ok(result.has_permission)
+    }
+
+    async fn update(&self, board_member: BoardMember) -> Result<BoardMember, ApplicationError> {
+        let active_model = Self::to_active_model(board_member);
+
+        let result = BoardMemberEntity::update(active_model)
+            .exec(&self.db)
+            .await
+            .map_err(ApplicationError::DatabaseError)?;
+
+        Ok(Self::to_domain(result))
     }
 
     async fn delete(&self, board_id: Uuid, user_id: Uuid) -> Result<u64, ApplicationError> {
