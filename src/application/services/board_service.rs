@@ -1,6 +1,7 @@
 use crate::{
     application::dto::{
-        AddBoardMemberDto, BoardDto, BoardMemberDto, CreateBoardDto, UpdateBoardDto,
+        AddBoardMemberDto, BoardDto, BoardMemberDto, CreateBoardDto, DeleteBoardMemberDto,
+        UpdateBoardDto, UpdateBoardMemberRoleDto,
     },
     domain::repositories::{
         Board, BoardMember, BoardMemberRepository, BoardRepository, UserRepository,
@@ -201,9 +202,61 @@ impl BoardService {
         }))
     }
 
+    pub async fn update_board_member_role(
+        &self,
+        dto: UpdateBoardMemberRoleDto,
+        user_id: Uuid,
+    ) -> Result<BoardMemberDto, ApplicationError> {
+        dto.validate()?;
+
+        if dto.user_id == user_id {
+            return Err(ApplicationError::BadRequest {
+                message: "You cannot change your own role".to_string(),
+            });
+        }
+
+        if dto.role == BoardMemberRoleEnum::Owner {
+            return Err(ApplicationError::BadRequest {
+                message: "You cannot assign the Owner role to another user".to_string(),
+            });
+        }
+
+        if !self
+            .board_member_repository
+            .check_permissions(dto.board_id, user_id, vec![BoardMemberRoleEnum::Owner])
+            .await?
+        {
+            return Err(ApplicationError::Forbidden {
+                message: "You don't have permission to perform this action".to_string(),
+            });
+        }
+
+        let mut board_member = self
+            .board_member_repository
+            .find_by_board_and_user_id(dto.board_id, dto.user_id)
+            .await?
+            .ok_or_else(|| ApplicationError::NotFound {
+                message: "The specified user is not a member of this board".to_string(),
+            })?;
+
+        board_member.role = dto.role;
+        board_member.updated_at = Utc::now().fixed_offset();
+
+        let updated_board_member = self.board_member_repository.update(board_member).await?;
+
+        Ok(BoardMemberDto::from_entity(BoardMemberModel {
+            id: updated_board_member.id,
+            board_id: updated_board_member.board_id,
+            user_id: updated_board_member.user_id,
+            role: updated_board_member.role,
+            created_at: updated_board_member.created_at,
+            updated_at: updated_board_member.updated_at,
+        }))
+    }
+
     pub async fn delete_board_member(
         &self,
-        dto: AddBoardMemberDto,
+        dto: DeleteBoardMemberDto,
         user_id: Uuid,
     ) -> Result<u64, ApplicationError> {
         dto.validate()?;
