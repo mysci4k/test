@@ -1,7 +1,7 @@
 use crate::application::dto::{
     ActivationQueryDto, AddBoardMemberDto, BoardDto, BoardMemberDto, CreateBoardDto, CreateUserDto,
-    ForgotPasswordQueryDto, LoginDto, ResendActivationQueryDto, ResetPasswordDto, UpdateBoardDto,
-    UserDto,
+    DeleteBoardMemberDto, ForgotPasswordQueryDto, LoginDto, ResendActivationQueryDto,
+    ResetPasswordDto, UpdateBoardDto, UpdateBoardMemberRoleDto, UserDto,
 };
 use utoipa::{
     Modify, OpenApi,
@@ -29,6 +29,7 @@ use utoipa::{
         crate::presentation::http::board_controller::get_user_boards,
         crate::presentation::http::board_controller::update_board,
         crate::presentation::http::board_controller::remove_board_member,
+        crate::presentation::http::board_controller::update_board_member_role,
         crate::presentation::http::board_controller::add_new_board_member
     ),
     components(
@@ -51,7 +52,9 @@ use utoipa::{
 
             // Board member DTOs
             BoardMemberDto,
-            AddBoardMemberDto
+            AddBoardMemberDto,
+            UpdateBoardMemberRoleDto,
+            DeleteBoardMemberDto
         )
     ),
     tags(
