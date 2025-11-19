@@ -21,10 +21,11 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
             .service(create_board)
             .service(get_board)
             .service(get_user_boards)
+            .service(update_board)
+            .service(delete_board)
             .service(add_new_board_member)
             .service(update_board_member_role)
-            .service(remove_board_member)
-            .service(update_board),
+            .service(remove_board_member),
     );
 }
 
@@ -152,6 +153,36 @@ async fn update_board(
     Ok(ApiResponse::Updated {
         message: "Board updated successfully".to_string(),
         data: board,
+    })
+}
+
+#[utoipa::path(
+    delete,
+    description = "Deletes a board by its ID",
+    path = "/board/{board_id}",
+    responses(
+        (status = 200, description = "Board deleted successfully", body = ApiResponseSchema<u64>),
+        (status = 403, description = "You don't have permission to perform this action", body = ApplicationErrorSchema),
+        (status = 404, description = "Board with the given ID not found", body = ApplicationErrorSchema)
+    ),
+    tag = "Board",
+    security(
+        ("session_cookie" = [])
+    )
+)]
+#[delete("/{board_id}")]
+async fn delete_board(
+    board_service: web::Data<Arc<BoardService>>,
+    board_id: web::Path<Uuid>,
+    user_id: web::ReqData<Uuid>,
+) -> Result<ApiResponse<u64>, ApplicationError> {
+    let board_id = board_id.into_inner();
+    let user_id = user_id.into_inner();
+    let rows_affected = board_service.delete_board(board_id, user_id).await?;
+
+    Ok(ApiResponse::Deleted {
+        message: "Board deleted successfully".to_string(),
+        rows_affected,
     })
 }
 
