@@ -91,4 +91,13 @@ impl BoardRepository for SeaOrmBoardRepository {
 
         Ok(Self::to_domain(result))
     }
+
+    async fn delete(&self, board_id: Uuid) -> Result<u64, ApplicationError> {
+        let result = BoardEntity::delete_by_id(board_id)
+            .exec(&self.db)
+            .await
+            .map_err(ApplicationError::DatabaseError)?;
+
+        Ok(result.rows_affected)
+    }
 }

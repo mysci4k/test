@@ -38,4 +38,5 @@ pub trait BoardRepository: Send + Sync {
     ) -> Result<Option<Board>, ApplicationError>;
     async fn find_by_membership(&self, user_id: Uuid) -> Result<Vec<Board>, ApplicationError>;
     async fn update(&self, board: Board) -> Result<Board, ApplicationError>;
+    async fn delete(&self, board_id: Uuid) -> Result<u64, ApplicationError>;
 }
