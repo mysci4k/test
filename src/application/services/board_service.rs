@@ -156,6 +156,26 @@ impl BoardService {
         }))
     }
 
+    pub async fn delete_board(
+        &self,
+        board_id: Uuid,
+        user_id: Uuid,
+    ) -> Result<u64, ApplicationError> {
+        if !self
+            .board_member_repository
+            .check_permissions(board_id, user_id, vec![BoardMemberRoleEnum::Owner])
+            .await?
+        {
+            return Err(ApplicationError::Forbidden {
+                message: "You don't have permission to perform this action".to_string(),
+            });
+        }
+
+        let deleted_board = self.board_repository.delete(board_id).await?;
+
+        Ok(deleted_board)
+    }
+
     pub async fn add_board_member(
         &self,
         dto: AddBoardMemberDto,
