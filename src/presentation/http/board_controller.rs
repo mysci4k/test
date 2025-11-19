@@ -1,6 +1,9 @@
 use crate::{
     application::{
-        dto::{AddBoardMemberDto, BoardDto, BoardMemberDto, CreateBoardDto, UpdateBoardDto},
+        dto::{
+            AddBoardMemberDto, BoardDto, BoardMemberDto, CreateBoardDto, DeleteBoardMemberDto,
+            UpdateBoardDto, UpdateBoardMemberRoleDto,
+        },
         services::BoardService,
     },
     shared::{
@@ -19,6 +22,7 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
             .service(get_board)
             .service(get_user_boards)
             .service(add_new_board_member)
+            .service(update_board_member_role)
             .service(remove_board_member)
             .service(update_board),
     );
@@ -186,6 +190,40 @@ async fn add_new_board_member(
 }
 
 #[utoipa::path(
+    put,
+    description = "Updates a board member's role",
+    path = "/board/member",
+    request_body = UpdateBoardMemberRoleDto,
+    responses(
+        (status = 200, description = "Board member role updated successfully", body = ApiResponseSchema<BoardMemberDto>),
+        (status = 400, description = "Bad Request", body = ApplicationErrorSchema),
+        (status = 401, description = "Unauthorized", body = ApplicationErrorSchema),
+        (status = 403, description = "You don't have permission to perform this action", body = ApplicationErrorSchema),
+        (status = 404, description = "Board with the given ID not found", body = ApplicationErrorSchema)
+    ),
+    tag = "Board",
+    security(
+        ("session_cookie" = [])
+    )
+)]
+#[put("/member")]
+async fn update_board_member_role(
+    board_service: web::Data<Arc<BoardService>>,
+    dto: web::Json<UpdateBoardMemberRoleDto>,
+    user_id: web::ReqData<Uuid>,
+) -> Result<ApiResponse<BoardMemberDto>, ApplicationError> {
+    let user_id = user_id.into_inner();
+    let board_member = board_service
+        .update_board_member_role(dto.into_inner(), user_id)
+        .await?;
+
+    Ok(ApiResponse::Updated {
+        message: "Board member role updated successfully".to_string(),
+        data: board_member,
+    })
+}
+
+#[utoipa::path(
     delete,
     description = "Removes a member from a board",
     path = "/board/member",
@@ -205,7 +243,7 @@ async fn add_new_board_member(
 #[delete("/member")]
 async fn remove_board_member(
     board_service: web::Data<Arc<BoardService>>,
-    dto: web::Json<AddBoardMemberDto>,
+    dto: web::Json<DeleteBoardMemberDto>,
     user_id: web::ReqData<Uuid>,
 ) -> Result<ApiResponse<u64>, ApplicationError> {
     let user_id = user_id.into_inner();
