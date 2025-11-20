@@ -19,13 +19,13 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/board")
             .service(create_board)
-            .service(get_board)
             .service(get_user_boards)
-            .service(update_board)
-            .service(delete_board)
             .service(add_new_board_member)
             .service(update_board_member_role)
-            .service(remove_board_member),
+            .service(remove_board_member)
+            .service(get_board)
+            .service(update_board)
+            .service(delete_board),
     );
 }
 
