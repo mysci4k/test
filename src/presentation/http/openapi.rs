@@ -31,7 +31,10 @@ use utoipa::{
         crate::presentation::http::board_controller::delete_board,
         crate::presentation::http::board_controller::remove_board_member,
         crate::presentation::http::board_controller::update_board_member_role,
-        crate::presentation::http::board_controller::add_new_board_member
+        crate::presentation::http::board_controller::add_new_board_member,
+
+        // Websocket endpoints
+        crate::presentation::http::websocket_controller::websocket_handler
     ),
     components(
         schemas(
@@ -61,7 +64,8 @@ use utoipa::{
     tags(
         (name = "Authentication", description = "Authentication management endpoints"),
         (name = "User", description = "User management endpoints"),
-        (name = "Board", description = "Board management endpoints")
+        (name = "Board", description = "Board management endpoints"),
+        (name = "WebSocket", description = "WebSocket management endpoints")
     ),
     modifiers(&SecurityAddon),
     info(
