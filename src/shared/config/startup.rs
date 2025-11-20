@@ -1,12 +1,14 @@
 use crate::{
-    application::services::{AuthService, BoardService, UserService},
+    application::services::{AuthService, BoardService, UserService, WebSocketService},
     domain::{
+        events::SharedEventBus,
         repositories::{BoardMemberRepository, BoardRepository, UserRepository},
         services::{EmailService, TokenService},
     },
     infrastructure::{
         cache::RedisTokenService,
         email::SmtpEmailService,
+        event_bus::InMemoryEventBus,
         persistence::{
             SeaOrmBoardMemberRepository, SeaOrmBoardRepository, SeaOrmUserRepository, database,
         },
@@ -54,11 +56,20 @@ pub fn initialize_repositories(
     (user_repository, board_repository, board_member_repository)
 }
 
+pub fn initialize_event_bus() -> SharedEventBus {
+    let event_bus = Arc::new(InMemoryEventBus::new()) as SharedEventBus;
+
+    info!("Successfully initialized event bus");
+
+    event_bus
+}
+
 pub fn initialize_services(
     user_repository: Arc<dyn UserRepository>,
     board_repository: Arc<dyn BoardRepository>,
     board_member_repository: Arc<dyn BoardMemberRepository>,
     redis_client: RedisClient,
+    event_bus: SharedEventBus,
 ) -> AppState {
     let token_service = Arc::new(RedisTokenService::new(redis_client)) as Arc<dyn TokenService>;
     let email_service =
@@ -74,10 +85,12 @@ pub fn initialize_services(
     let board_service = Arc::new(BoardService::new(
         user_repository,
         board_repository,
-        board_member_repository,
+        board_member_repository.clone(),
+        event_bus.clone(),
     ));
+    let websocket_service = Arc::new(WebSocketService::new(event_bus, board_member_repository));
 
     info!("Successfully initialized services");
 
-    AppState::new(auth_service, user_service, board_service)
+    AppState::new(auth_service, user_service, board_service, websocket_service)
 }
