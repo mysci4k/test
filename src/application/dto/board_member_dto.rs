@@ -6,12 +6,14 @@ use uuid::Uuid;
 use validator::Validate;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Validate, ToSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct AddBoardMemberDto {
     pub board_id: Uuid,
     pub user_id: Uuid,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Validate, ToSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct UpdateBoardMemberRoleDto {
     pub board_id: Uuid,
     pub user_id: Uuid,
@@ -19,6 +21,7 @@ pub struct UpdateBoardMemberRoleDto {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Validate, ToSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct DeleteBoardMemberDto {
     pub board_id: Uuid,
     pub user_id: Uuid,
