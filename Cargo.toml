@@ -13,6 +13,7 @@ members = [".", "entity", "migration"]
 entity = { path = "entity" }
 migration = { path = "migration" }
 actix-web = "4.11.0"
+actix-ws = "0.3.0"
 actix-session = { version = "0.11.0", features = ["redis-session-rustls"] }
 actix-identity = "0.9.0"
 dotenvy = "0.15.7"
@@ -34,5 +35,6 @@ lettre = { version = "0.11.19", features = ["tokio1-native-tls"] }
 hex = "0.4.3"
 tera = "1.20.1"
 futures-util = "0.3.31"
+tokio = { version = "1.48.0", features = ["full"] }
 utoipa = { version = "5.4.0", features = ["actix_extras", "uuid", "chrono", "preserve_order", "preserve_path_order"] }
 utoipa-scalar = { version = "0.3.0", features = ["actix-web"] }
