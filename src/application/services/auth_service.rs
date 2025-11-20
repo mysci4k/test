@@ -42,10 +42,10 @@ impl AuthService {
 
         let hashed_password = task::spawn_blocking(move || argon::hash_password(dto.password))
             .await
-            .map_err(|_| ApplicationError::InternalServerError {
+            .map_err(|_| ApplicationError::InternalError {
                 message: "Failed to hash password".to_string(),
             })?
-            .map_err(|_| ApplicationError::InternalServerError {
+            .map_err(|_| ApplicationError::InternalError {
                 message: "Password hashing failed".to_string(),
             })?;
 
@@ -63,7 +63,7 @@ impl AuthService {
         self.token_service
             .store_activation_token(&saved_user.id.to_string(), &activation_token)
             .await
-            .map_err(|_| ApplicationError::InternalServerError {
+            .map_err(|_| ApplicationError::InternalError {
                 message: "Failed to store activation token".to_string(),
             })?;
 
@@ -76,7 +76,7 @@ impl AuthService {
                 &activation_token,
             )
             .await
-            .map_err(|_| ApplicationError::InternalServerError {
+            .map_err(|_| ApplicationError::InternalError {
                 message: "Failed to send activation email".to_string(),
             })?;
 
@@ -108,7 +108,7 @@ impl AuthService {
             move || argon::verify_password_hash(dto.password, user_password)
         })
         .await
-        .map_err(|_| ApplicationError::InternalServerError {
+        .map_err(|_| ApplicationError::InternalError {
             message: "Failed to verify password".to_string(),
         })?
         .map_err(|_| ApplicationError::BadRequest {
@@ -122,7 +122,9 @@ impl AuthService {
         }
 
         if !user.is_active {
-            return Err(ApplicationError::Forbidden);
+            return Err(ApplicationError::Forbidden {
+                message: "Access denied".to_string(),
+            });
         }
 
         Ok(UserDto::from_entity(UserModel {
@@ -165,7 +167,7 @@ impl AuthService {
         self.token_service
             .delete_activation_token(&user_id.to_string())
             .await
-            .map_err(|_| ApplicationError::InternalServerError {
+            .map_err(|_| ApplicationError::InternalError {
                 message: "Failed to delete activation token".to_string(),
             })?;
 
@@ -200,7 +202,7 @@ impl AuthService {
             .token_service
             .has_active_token(&user.id.to_string())
             .await
-            .map_err(|_| ApplicationError::InternalServerError {
+            .map_err(|_| ApplicationError::InternalError {
                 message: "Failed to check existing activation token".to_string(),
             })?;
 
@@ -214,7 +216,7 @@ impl AuthService {
         self.token_service
             .store_activation_token(&user.id.to_string(), &activation_token)
             .await
-            .map_err(|_| ApplicationError::InternalServerError {
+            .map_err(|_| ApplicationError::InternalError {
                 message: "Failed to store activation token".to_string(),
             })?;
 
@@ -227,7 +229,7 @@ impl AuthService {
                 &activation_token,
             )
             .await
-            .map_err(|_| ApplicationError::InternalServerError {
+            .map_err(|_| ApplicationError::InternalError {
                 message: "Failed to send activation email".to_string(),
             })?;
 
@@ -253,7 +255,7 @@ impl AuthService {
             .token_service
             .has_active_password_reset_token(&user.id.to_string())
             .await
-            .map_err(|_| ApplicationError::InternalServerError {
+            .map_err(|_| ApplicationError::InternalError {
                 message: "Failed to check existing reset token".to_string(),
             })?;
 
@@ -267,7 +269,7 @@ impl AuthService {
         self.token_service
             .store_password_reset_token(&user.id.to_string(), &reset_token)
             .await
-            .map_err(|_| ApplicationError::InternalServerError {
+            .map_err(|_| ApplicationError::InternalError {
                 message: "Failed to store password reset token".to_string(),
             })?;
 
@@ -275,7 +277,7 @@ impl AuthService {
         self.email_service
             .send_password_reset_email(&user.email, &username, &user.id.to_string(), &reset_token)
             .await
-            .map_err(|_| ApplicationError::InternalServerError {
+            .map_err(|_| ApplicationError::InternalError {
                 message: "Failed to send password reset email".to_string(),
             })?;
 
@@ -305,10 +307,10 @@ impl AuthService {
 
         let hashed_password = task::spawn_blocking(move || argon::hash_password(dto.new_password))
             .await
-            .map_err(|_| ApplicationError::InternalServerError {
+            .map_err(|_| ApplicationError::InternalError {
                 message: "Failed to hash new password".to_string(),
             })?
-            .map_err(|_| ApplicationError::InternalServerError {
+            .map_err(|_| ApplicationError::InternalError {
                 message: "Password hashing failed".to_string(),
             })?;
 
@@ -319,7 +321,7 @@ impl AuthService {
         self.token_service
             .delete_password_reset_token(&dto.user_id)
             .await
-            .map_err(|_| ApplicationError::InternalServerError {
+            .map_err(|_| ApplicationError::InternalError {
                 message: "Failed to delete password reset token".to_string(),
             })?;
 

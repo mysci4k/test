@@ -7,7 +7,10 @@ mod shared;
 use crate::{
     presentation::http::configure_server,
     shared::{
-        config::{initialize_infrastructure, initialize_repositories, initialize_services},
+        config::{
+            initialize_event_bus, initialize_infrastructure, initialize_repositories,
+            initialize_services,
+        },
         utils::constants::{SERVER_ADDRESS, SERVER_PORT},
     },
 };
@@ -30,9 +33,18 @@ async fn main() -> Result<()> {
         .await
         .expect("Failed to initialize infrastructure");
 
-    let user_repository = initialize_repositories(database);
+    let (user_repository, board_repository, board_member_repository) =
+        initialize_repositories(database);
 
-    let app_state = initialize_services(user_repository, redis_client);
+    let event_bus = initialize_event_bus();
+
+    let app_state = initialize_services(
+        user_repository,
+        board_repository,
+        board_member_repository,
+        redis_client,
+        event_bus,
+    );
 
     let server = configure_server(app_state, &SERVER_ADDRESS, *SERVER_PORT).await?;
 

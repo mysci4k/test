@@ -9,5 +9,6 @@ name = "entity"
 path = "src/mod.rs"
 
 [dependencies]
-serde = { version = "1.0.228", features = ["derive"] }
 sea-orm = "1.1.17"
+serde = { version = "1.0.228", features = ["derive"] }
+utoipa = { version = "5.4.0", features = ["actix_extras", "uuid", "chrono", "preserve_order", "preserve_path_order"] }

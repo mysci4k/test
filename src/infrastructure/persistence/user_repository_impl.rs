@@ -78,6 +78,16 @@ impl UserRepository for SeaOrmUserRepository {
         Ok(result.map(Self::to_domain))
     }
 
+    async fn exists_by_id(&self, id: Uuid) -> Result<bool, ApplicationError> {
+        let count = UserEntity::find()
+            .filter(UserColumn::Id.eq(id))
+            .count(&self.db)
+            .await
+            .map_err(ApplicationError::DatabaseError)?;
+
+        Ok(count > 0)
+    }
+
     async fn exists_by_email(&self, email: &str) -> Result<bool, ApplicationError> {
         let count = UserEntity::find()
             .filter(UserColumn::Email.eq(email.to_string()))
