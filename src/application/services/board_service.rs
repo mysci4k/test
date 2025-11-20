@@ -3,8 +3,14 @@ use crate::{
         AddBoardMemberDto, BoardDto, BoardMemberDto, CreateBoardDto, DeleteBoardMemberDto,
         UpdateBoardDto, UpdateBoardMemberRoleDto,
     },
-    domain::repositories::{
-        Board, BoardMember, BoardMemberRepository, BoardRepository, UserRepository,
+    domain::{
+        events::{
+            BoardCreatedEvent, BoardDeletedEvent, BoardEvent, BoardUpdatedEvent, MemberAddedEvent,
+            MemberRemovedEvent, MemberRoleChangedEvent, SharedEventBus,
+        },
+        repositories::{
+            Board, BoardMember, BoardMemberRepository, BoardRepository, UserRepository,
+        },
     },
     shared::error::ApplicationError,
 };
@@ -18,6 +24,7 @@ pub struct BoardService {
     user_repository: Arc<dyn UserRepository>,
     board_repository: Arc<dyn BoardRepository>,
     board_member_repository: Arc<dyn BoardMemberRepository>,
+    event_bus: SharedEventBus,
 }
 
 impl BoardService {
@@ -25,11 +32,13 @@ impl BoardService {
         user_repository: Arc<dyn UserRepository>,
         board_repository: Arc<dyn BoardRepository>,
         board_member_repository: Arc<dyn BoardMemberRepository>,
+        event_bus: SharedEventBus,
     ) -> Self {
         Self {
             user_repository,
             board_repository,
             board_member_repository,
+            event_bus,
         }
     }
 
@@ -53,6 +62,19 @@ impl BoardService {
         );
 
         self.board_member_repository.create(board_member).await?;
+
+        self.event_bus
+            .publish(
+                board_id,
+                BoardEvent::BoardCreated(BoardCreatedEvent {
+                    board_id,
+                    name: saved_board.name.clone(),
+                    description: saved_board.description.clone(),
+                    owner_id,
+                    timestamp: saved_board.created_at,
+                }),
+            )
+            .await;
 
         Ok(BoardDto::from_entity(BoardModel {
             id: saved_board.id,
@@ -146,6 +168,19 @@ impl BoardService {
 
         let updated_board = self.board_repository.update(board).await?;
 
+        self.event_bus
+            .publish(
+                board_id,
+                BoardEvent::BoardUpdated(BoardUpdatedEvent {
+                    board_id,
+                    name: Some(updated_board.name.clone()),
+                    description: updated_board.description.clone(),
+                    updated_by: user_id,
+                    timestamp: updated_board.updated_at,
+                }),
+            )
+            .await;
+
         Ok(BoardDto::from_entity(BoardModel {
             id: updated_board.id,
             name: updated_board.name,
@@ -172,6 +207,17 @@ impl BoardService {
         }
 
         let deleted_board = self.board_repository.delete(board_id).await?;
+
+        self.event_bus
+            .publish(
+                board_id,
+                BoardEvent::BoardDeleted(BoardDeletedEvent {
+                    board_id,
+                    deleted_by: user_id,
+                    timestamp: Utc::now().fixed_offset(),
+                }),
+            )
+            .await;
 
         Ok(deleted_board)
     }
@@ -211,6 +257,19 @@ impl BoardService {
         );
 
         let saved_board_member = self.board_member_repository.create(board_member).await?;
+
+        self.event_bus
+            .publish(
+                dto.board_id,
+                BoardEvent::MemberAdded(MemberAddedEvent {
+                    board_id: saved_board_member.board_id,
+                    user_id: saved_board_member.user_id,
+                    role: saved_board_member.role.clone(),
+                    added_by: user_id,
+                    timestamp: saved_board_member.created_at,
+                }),
+            )
+            .await;
 
         Ok(BoardMemberDto::from_entity(BoardMemberModel {
             id: saved_board_member.id,
@@ -263,6 +322,19 @@ impl BoardService {
         board_member.updated_at = Utc::now().fixed_offset();
 
         let updated_board_member = self.board_member_repository.update(board_member).await?;
+
+        self.event_bus
+            .publish(
+                dto.board_id,
+                BoardEvent::MemberRoleChanged(MemberRoleChangedEvent {
+                    board_id: updated_board_member.board_id,
+                    user_id: updated_board_member.user_id,
+                    role: updated_board_member.role.clone(),
+                    changed_by: user_id,
+                    timestamp: updated_board_member.updated_at,
+                }),
+            )
+            .await;
 
         Ok(BoardMemberDto::from_entity(BoardMemberModel {
             id: updated_board_member.id,
@@ -327,6 +399,18 @@ impl BoardService {
             .board_member_repository
             .delete(dto.board_id, dto.user_id)
             .await?;
+
+        self.event_bus
+            .publish(
+                dto.board_id,
+                BoardEvent::MemberRemoved(MemberRemovedEvent {
+                    board_id: dto.board_id,
+                    user_id: dto.user_id,
+                    removed_by: user_id,
+                    timestamp: Utc::now().fixed_offset(),
+                }),
+            )
+            .await;
 
         Ok(deleted_board_member)
     }
