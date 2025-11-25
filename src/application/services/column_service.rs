@@ -78,4 +78,38 @@ impl ColumnService {
             updated_at: saved_column.updated_at,
         }))
     }
+
+    pub async fn get_column_by_id(
+        &self,
+        column_id: Uuid,
+        user_id: Uuid,
+    ) -> Result<ColumnDto, ApplicationError> {
+        let column = self
+            .column_repository
+            .find_by_id(column_id)
+            .await?
+            .ok_or_else(|| ApplicationError::NotFound {
+                message: "Column with the given ID not found".to_string(),
+            })?;
+
+        if !self
+            .board_member_repository
+            .find_by_board_and_user_id(column.board_id, user_id)
+            .await?
+            .is_some()
+        {
+            return Err(ApplicationError::Forbidden {
+                message: "You don't have access to this board".to_string(),
+            });
+        }
+
+        Ok(ColumnDto::from_entity(ColumnModel {
+            id: column.id,
+            name: column.name,
+            position: column.position,
+            board_id: column.board_id,
+            created_at: column.created_at,
+            updated_at: column.updated_at,
+        }))
+    }
 }
