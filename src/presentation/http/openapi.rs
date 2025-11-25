@@ -35,6 +35,7 @@ use utoipa::{
 
         // Column endpoints
         crate::presentation::http::column_controller::create_column,
+        crate::presentation::http::column_controller::get_column,
 
         // Websocket endpoints
         crate::presentation::http::websocket_controller::websocket_handler
