@@ -1,7 +1,7 @@
 use crate::application::dto::{
-    ActivationQueryDto, AddBoardMemberDto, BoardDto, BoardMemberDto, CreateBoardDto, CreateUserDto,
-    DeleteBoardMemberDto, ForgotPasswordQueryDto, LoginDto, ResendActivationQueryDto,
-    ResetPasswordDto, UpdateBoardDto, UpdateBoardMemberRoleDto, UserDto,
+    ActivationQueryDto, AddBoardMemberDto, BoardDto, BoardMemberDto, CreateBoardDto,
+    CreateColumnDto, CreateUserDto, DeleteBoardMemberDto, ForgotPasswordQueryDto, LoginDto,
+    ResendActivationQueryDto, ResetPasswordDto, UpdateBoardDto, UpdateBoardMemberRoleDto, UserDto,
 };
 use utoipa::{
     Modify, OpenApi,
@@ -33,6 +33,9 @@ use utoipa::{
         crate::presentation::http::board_controller::update_board_member_role,
         crate::presentation::http::board_controller::add_new_board_member,
 
+        // Column endpoints
+        crate::presentation::http::column_controller::create_column,
+
         // Websocket endpoints
         crate::presentation::http::websocket_controller::websocket_handler
     ),
@@ -58,13 +61,17 @@ use utoipa::{
             BoardMemberDto,
             AddBoardMemberDto,
             UpdateBoardMemberRoleDto,
-            DeleteBoardMemberDto
+            DeleteBoardMemberDto,
+
+            // Column DTOs
+            CreateColumnDto
         )
     ),
     tags(
         (name = "Authentication", description = "Authentication management endpoints"),
         (name = "User", description = "User management endpoints"),
         (name = "Board", description = "Board management endpoints"),
+        (name = "Column", description = "Column management endpoints"),
         (name = "WebSocket", description = "WebSocket management endpoints")
     ),
     modifiers(&SecurityAddon),
