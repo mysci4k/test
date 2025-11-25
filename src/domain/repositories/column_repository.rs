@@ -31,4 +31,5 @@ impl Column {
 #[async_trait]
 pub trait ColumnRepository: Send + Sync {
     async fn create(&self, column: Column) -> Result<Column, ApplicationError>;
+    async fn find_by_id(&self, column_id: Uuid) -> Result<Option<Column>, ApplicationError>;
 }

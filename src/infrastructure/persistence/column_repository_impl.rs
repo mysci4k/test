@@ -5,6 +5,7 @@ use crate::{
 use async_trait::async_trait;
 use entity::{ColumnActiveModel, ColumnEntity, ColumnModel};
 use sea_orm::{ActiveValue::Set, DatabaseConnection, EntityTrait};
+use uuid::Uuid;
 
 pub struct SeaOrmColumnRepository {
     db: DatabaseConnection,
@@ -49,5 +50,14 @@ impl ColumnRepository for SeaOrmColumnRepository {
             .map_err(ApplicationError::DatabaseError)?;
 
         Ok(Self::to_domain(result))
+    }
+
+    async fn find_by_id(&self, column_id: Uuid) -> Result<Option<Column>, ApplicationError> {
+        let result = ColumnEntity::find_by_id(column_id)
+            .one(&self.db)
+            .await
+            .map_err(ApplicationError::DatabaseError)?;
+
+        Ok(result.map(Self::to_domain))
     }
 }
