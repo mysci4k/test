@@ -8,12 +8,16 @@ use crate::{
         response::{ApiResponse, ApiResponseSchema},
     },
 };
-use actix_web::{post, web};
+use actix_web::{get, post, web};
 use std::sync::Arc;
 use uuid::Uuid;
 
 pub fn configure(cfg: &mut web::ServiceConfig) {
-    cfg.service(web::scope("/column").service(create_column));
+    cfg.service(
+        web::scope("/column")
+            .service(create_column)
+            .service(get_column),
+    );
 }
 
 #[utoipa::path(
@@ -46,5 +50,40 @@ async fn create_column(
     Ok(ApiResponse::Created {
         message: "Column created successfully".to_string(),
         data: column,
+    })
+}
+
+#[utoipa::path(
+    get,
+    description = "Retrieves a column by its ID",
+    path = "/column/{column_id}",
+    responses(
+        (status = 200, description = "Column data retrieved successfully", body = ApiResponseSchema<ColumnDto>),
+        (status = 400, description = "Bad Request", body = ApplicationErrorSchema),
+        (status = 401, description = "Unauthorized", body = ApplicationErrorSchema),
+        (status = 403, description = "You don't have access to this board", body = ApplicationErrorSchema),
+        (status = 404, description = "Column with the given ID not found", body = ApplicationErrorSchema)
+    ),
+    tag = "Column",
+    security(
+        ("session_cookie" = [])
+    )
+ )]
+#[get("/{column_id}")]
+async fn get_column(
+    column_service: web::Data<Arc<ColumnService>>,
+    column_id: web::Path<Uuid>,
+    user_id: web::ReqData<Uuid>,
+) -> Result<ApiResponse<ColumnDto>, ApplicationError> {
+    let user_id = user_id.into_inner();
+    let column = column_service
+        .get_column_by_id(column_id.into_inner(), user_id)
+        .await?;
+
+    Ok(ApiResponse::Found {
+        message: "Column data retrieved successfully".to_string(),
+        data: column,
+        page: None,
+        total_pages: None,
     })
 }
