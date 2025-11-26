@@ -112,4 +112,37 @@ impl ColumnService {
             updated_at: column.updated_at,
         }))
     }
+
+    pub async fn get_board_columns(
+        &self,
+        board_id: Uuid,
+        user_id: Uuid,
+    ) -> Result<Vec<ColumnDto>, ApplicationError> {
+        if !self
+            .board_member_repository
+            .find_by_board_and_user_id(board_id, user_id)
+            .await?
+            .is_some()
+        {
+            return Err(ApplicationError::Forbidden {
+                message: "You don't have access to this board".to_string(),
+            });
+        }
+
+        let columns = self.column_repository.find_by_board_id(board_id).await?;
+
+        Ok(columns
+            .into_iter()
+            .map(|column| {
+                ColumnDto::from_entity(ColumnModel {
+                    id: column.id,
+                    name: column.name,
+                    position: column.position,
+                    board_id: column.board_id,
+                    created_at: column.created_at,
+                    updated_at: column.updated_at,
+                })
+            })
+            .collect())
+    }
 }
