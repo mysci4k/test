@@ -12,5 +12,5 @@ pub use board_dto::{BoardDto, CreateBoardDto, UpdateBoardDto};
 pub use board_member_dto::{
     AddBoardMemberDto, BoardMemberDto, DeleteBoardMemberDto, UpdateBoardMemberRoleDto,
 };
-pub use column_dto::{ColumnDto, CreateColumnDto};
+pub use column_dto::{ColumnDto, CreateColumnDto, UpdateColumnDto};
 pub use user_dto::{CreateUserDto, UserDto};

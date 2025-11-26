@@ -19,6 +19,17 @@ pub struct CreateColumnDto {
     pub board_id: Uuid,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, Validate, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateColumnDto {
+    #[validate(length(
+        min = 1,
+        max = 100,
+        message = "Column name must be between 1 and 100 characters long"
+    ))]
+    pub name: Option<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ColumnDto {
