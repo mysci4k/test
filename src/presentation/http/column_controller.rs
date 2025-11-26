@@ -1,6 +1,6 @@
 use crate::{
     application::{
-        dto::{ColumnDto, CreateColumnDto},
+        dto::{ColumnDto, CreateColumnDto, UpdateColumnDto},
         services::ColumnService,
     },
     shared::{
@@ -8,7 +8,7 @@ use crate::{
         response::{ApiResponse, ApiResponseSchema},
     },
 };
-use actix_web::{get, post, web};
+use actix_web::{get, post, put, web};
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -17,7 +17,8 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
         web::scope("/column")
             .service(create_column)
             .service(get_column)
-            .service(get_board_columns),
+            .service(get_board_columns)
+            .service(update_column),
     );
 }
 
@@ -120,5 +121,41 @@ async fn get_board_columns(
         data: columns,
         page: None,
         total_pages: None,
+    })
+}
+
+#[utoipa::path(
+    put,
+    description = "Updates an existing column",
+    path = "/column/{column_id}",
+    request_body = UpdateColumnDto,
+    responses(
+        (status = 200, description = "Column updated successfully", body = ApiResponseSchema<ColumnDto>),
+        (status = 400, description = "Bad Request", body = ApplicationErrorSchema),
+        (status = 401, description = "Unauthorized", body = ApplicationErrorSchema),
+        (status = 403, description = "You don't have access to this board", body = ApplicationErrorSchema),
+        (status = 404, description = "Column with the given ID not found", body = ApplicationErrorSchema)
+    ),
+    tag = "Column",
+    security(
+        ("session_cookie" = [])
+    )
+ )]
+#[put("/{column_id}")]
+async fn update_column(
+    column_service: web::Data<Arc<ColumnService>>,
+    dto: web::Json<UpdateColumnDto>,
+    column_id: web::Path<Uuid>,
+    user_id: web::ReqData<Uuid>,
+) -> Result<ApiResponse<ColumnDto>, ApplicationError> {
+    let column_id = column_id.into_inner();
+    let user_id = user_id.into_inner();
+    let column = column_service
+        .update_column(dto.into_inner(), column_id, user_id)
+        .await?;
+
+    Ok(ApiResponse::Updated {
+        message: "Column updated successfully".to_string(),
+        data: column,
     })
 }
