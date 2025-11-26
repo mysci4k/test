@@ -3,8 +3,8 @@ use crate::{
     shared::error::ApplicationError,
 };
 use async_trait::async_trait;
-use entity::{ColumnActiveModel, ColumnEntity, ColumnModel};
-use sea_orm::{ActiveValue::Set, DatabaseConnection, EntityTrait};
+use entity::{ColumnActiveModel, ColumnColumn, ColumnEntity, ColumnModel};
+use sea_orm::{ActiveValue::Set, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 use uuid::Uuid;
 
 pub struct SeaOrmColumnRepository {
@@ -59,5 +59,15 @@ impl ColumnRepository for SeaOrmColumnRepository {
             .map_err(ApplicationError::DatabaseError)?;
 
         Ok(result.map(Self::to_domain))
+    }
+
+    async fn find_by_board_id(&self, board_id: Uuid) -> Result<Vec<Column>, ApplicationError> {
+        let result = ColumnEntity::find()
+            .filter(ColumnColumn::BoardId.eq(board_id))
+            .all(&self.db)
+            .await
+            .map_err(ApplicationError::DatabaseError)?;
+
+        Ok(result.into_iter().map(Self::to_domain).collect())
     }
 }
