@@ -1,11 +1,12 @@
 use crate::{
-    application::dto::{ColumnDto, CreateColumnDto},
+    application::dto::{ColumnDto, CreateColumnDto, UpdateColumnDto},
     domain::{
-        events::{BoardEvent, ColumnCreatedEvent, SharedEventBus},
+        events::{BoardEvent, ColumnCreatedEvent, ColumnUpdatedEvent, SharedEventBus},
         repositories::{BoardMemberRepository, Column, ColumnRepository},
     },
     shared::error::ApplicationError,
 };
+use chrono::Utc;
 use entity::{BoardMemberRoleEnum, ColumnModel};
 use std::sync::Arc;
 use uuid::Uuid;
@@ -144,5 +145,64 @@ impl ColumnService {
                 })
             })
             .collect())
+    }
+
+    pub async fn update_column(
+        &self,
+        dto: UpdateColumnDto,
+        column_id: Uuid,
+        user_id: Uuid,
+    ) -> Result<ColumnDto, ApplicationError> {
+        dto.validate()?;
+
+        let mut column = self
+            .column_repository
+            .find_by_id(column_id)
+            .await?
+            .ok_or_else(|| ApplicationError::NotFound {
+                message: "Column with the given ID not found".to_string(),
+            })?;
+
+        if !self
+            .board_member_repository
+            .check_permissions(
+                column.board_id,
+                user_id,
+                vec![BoardMemberRoleEnum::Owner, BoardMemberRoleEnum::Moderator],
+            )
+            .await?
+        {
+            return Err(ApplicationError::Forbidden {
+                message: "You don't have permission to perform this action".to_string(),
+            });
+        }
+
+        if let Some(name) = dto.name {
+            column.name = name;
+        }
+        column.updated_at = Utc::now().fixed_offset();
+
+        let updated_column = self.column_repository.update(column).await?;
+
+        self.event_bus
+            .publish(
+                updated_column.board_id,
+                BoardEvent::ColumnUpdated(ColumnUpdatedEvent {
+                    column_id,
+                    name: Some(updated_column.name.clone()),
+                    updated_by: user_id,
+                    timestamp: updated_column.updated_at,
+                }),
+            )
+            .await;
+
+        Ok(ColumnDto::from_entity(ColumnModel {
+            id: updated_column.id,
+            name: updated_column.name,
+            position: updated_column.position,
+            board_id: updated_column.board_id,
+            created_at: updated_column.created_at,
+            updated_at: updated_column.updated_at,
+        }))
     }
 }
