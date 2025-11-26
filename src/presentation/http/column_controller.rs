@@ -16,7 +16,8 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/column")
             .service(create_column)
-            .service(get_column),
+            .service(get_column)
+            .service(get_board_columns),
     );
 }
 
@@ -83,6 +84,40 @@ async fn get_column(
     Ok(ApiResponse::Found {
         message: "Column data retrieved successfully".to_string(),
         data: column,
+        page: None,
+        total_pages: None,
+    })
+}
+
+#[utoipa::path(
+    get,
+    description = "Retrieves all columns for a given board",
+    path = "/column/board/{board_id}",
+    responses(
+        (status = 200, description = "Columns retrieved successfully", body = ApiResponseSchema<Vec<ColumnDto>>),
+        (status = 400, description = "Bad Request", body = ApplicationErrorSchema),
+        (status = 401, description = "Unauthorized", body = ApplicationErrorSchema),
+        (status = 403, description = "You don't have access to this board", body = ApplicationErrorSchema),
+    ),
+    tag = "Column",
+    security(
+        ("session_cookie" = [])
+    )
+ )]
+#[get("/board/{board_id}")]
+async fn get_board_columns(
+    column_service: web::Data<Arc<ColumnService>>,
+    board_id: web::Path<Uuid>,
+    user_id: web::ReqData<Uuid>,
+) -> Result<ApiResponse<Vec<ColumnDto>>, ApplicationError> {
+    let user_id = user_id.into_inner();
+    let columns = column_service
+        .get_board_columns(board_id.into_inner(), user_id)
+        .await?;
+
+    Ok(ApiResponse::Found {
+        message: "Columns retrieved successfully".to_string(),
+        data: columns,
         page: None,
         total_pages: None,
     })
