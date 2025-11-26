@@ -33,4 +33,5 @@ pub trait ColumnRepository: Send + Sync {
     async fn create(&self, column: Column) -> Result<Column, ApplicationError>;
     async fn find_by_id(&self, column_id: Uuid) -> Result<Option<Column>, ApplicationError>;
     async fn find_by_board_id(&self, board_id: Uuid) -> Result<Vec<Column>, ApplicationError>;
+    async fn update(&self, column: Column) -> Result<Column, ApplicationError>;
 }

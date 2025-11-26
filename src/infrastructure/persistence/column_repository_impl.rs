@@ -70,4 +70,15 @@ impl ColumnRepository for SeaOrmColumnRepository {
 
         Ok(result.into_iter().map(Self::to_domain).collect())
     }
+
+    async fn update(&self, column: Column) -> Result<Column, ApplicationError> {
+        let active_model = Self::to_active_model(column);
+
+        let result = ColumnEntity::update(active_model)
+            .exec(&self.db)
+            .await
+            .map_err(ApplicationError::DatabaseError)?;
+
+        Ok(Self::to_domain(result))
+    }
 }
