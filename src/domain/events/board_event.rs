@@ -13,6 +13,7 @@ pub enum BoardEvent {
     MemberRoleChanged(MemberRoleChangedEvent),
     MemberRemoved(MemberRemovedEvent),
     ColumnCreated(ColumnCreatedEvent),
+    ColumnUpdated(ColumnUpdatedEvent),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -80,5 +81,14 @@ pub struct ColumnCreatedEvent {
     pub position: i32,
     pub board_id: Uuid,
     pub created_by: Uuid,
+    pub timestamp: DateTime<FixedOffset>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ColumnUpdatedEvent {
+    pub column_id: Uuid,
+    pub name: Option<String>,
+    pub updated_by: Uuid,
     pub timestamp: DateTime<FixedOffset>,
 }
