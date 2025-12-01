@@ -8,7 +8,7 @@ use crate::{
         response::{ApiResponse, ApiResponseSchema},
     },
 };
-use actix_web::{get, post, put, web};
+use actix_web::{delete, get, post, put, web};
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -19,7 +19,8 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
             .service(get_column)
             .service(get_board_columns)
             .service(update_column)
-            .service(move_column),
+            .service(move_column)
+            .service(delete_column),
     );
 }
 
@@ -192,5 +193,37 @@ async fn move_column(
     Ok(ApiResponse::Updated {
         message: "Column moved successfully".to_string(),
         data: column,
+    })
+}
+
+#[utoipa::path(
+    delete,
+    description = "Deletes a column by its ID",
+    path = "/column/{column_id}",
+    responses(
+        (status = 200, description = "Column deleted successfully", body = ApiResponseSchema<u64>),
+        (status = 400, description = "Bad Request", body = ApplicationErrorSchema),
+        (status = 401, description = "Unauthorized", body = ApplicationErrorSchema),
+        (status = 403, description = "You don't have permission to perform this action", body = ApplicationErrorSchema),
+        (status = 404, description = "Column with the given ID not found", body = ApplicationErrorSchema)
+    ),
+    tag = "Column",
+    security(
+        ("session_cookie" = [])
+    )
+ )]
+#[delete("/{column_id}")]
+async fn delete_column(
+    column_service: web::Data<Arc<ColumnService>>,
+    column_id: web::Path<Uuid>,
+    user_id: web::ReqData<Uuid>,
+) -> Result<ApiResponse<()>, ApplicationError> {
+    let column_id = column_id.into_inner();
+    let user_id = user_id.into_inner();
+    let rows_affected = column_service.delete_column(column_id, user_id).await?;
+
+    Ok(ApiResponse::Deleted {
+        message: "Column deleted successfully".to_string(),
+        rows_affected,
     })
 }
