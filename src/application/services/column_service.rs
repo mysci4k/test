@@ -4,7 +4,7 @@ use crate::{
         events::{BoardEvent, ColumnCreatedEvent, ColumnUpdatedEvent, SharedEventBus},
         repositories::{BoardMemberRepository, Column, ColumnRepository},
     },
-    shared::error::ApplicationError,
+    shared::{error::ApplicationError, utils::FractionalIndexGenerator},
 };
 use chrono::Utc;
 use entity::{BoardMemberRoleEnum, ColumnModel};
@@ -52,7 +52,27 @@ impl ColumnService {
             });
         }
 
-        let column = Column::new(Uuid::now_v7(), dto.name, dto.position, dto.board_id);
+        let mut existing_columns = self
+            .column_repository
+            .find_by_board_id(dto.board_id)
+            .await?;
+
+        existing_columns.sort_by(|a, b| a.position.cmp(&b.position));
+        let existing_positions: Vec<String> = existing_columns
+            .iter()
+            .map(|c| c.position.clone())
+            .collect();
+
+        let position = if existing_positions.is_empty() {
+            FractionalIndexGenerator::first()
+        } else {
+            FractionalIndexGenerator::after(&existing_positions[existing_positions.len() - 1])
+                .map_err(|err| ApplicationError::BadRequest {
+                    message: format!("Failed to generate position: {}", err),
+                })?
+        };
+
+        let column = Column::new(Uuid::now_v7(), dto.name, position, dto.board_id);
 
         let saved_column = self.column_repository.create(column).await?;
 
@@ -62,7 +82,7 @@ impl ColumnService {
                 BoardEvent::ColumnCreated(ColumnCreatedEvent {
                     column_id: saved_column.id,
                     name: saved_column.name.clone(),
-                    position: saved_column.position,
+                    position: saved_column.position.clone(),
                     board_id: saved_column.board_id,
                     created_by: user_id,
                     timestamp: saved_column.created_at,
