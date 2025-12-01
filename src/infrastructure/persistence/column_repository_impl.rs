@@ -4,7 +4,9 @@ use crate::{
 };
 use async_trait::async_trait;
 use entity::{ColumnActiveModel, ColumnColumn, ColumnEntity, ColumnModel};
-use sea_orm::{ActiveValue::Set, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
+use sea_orm::{
+    ActiveValue::Set, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder,
+};
 use uuid::Uuid;
 
 pub struct SeaOrmColumnRepository {
@@ -64,6 +66,7 @@ impl ColumnRepository for SeaOrmColumnRepository {
     async fn find_by_board_id(&self, board_id: Uuid) -> Result<Vec<Column>, ApplicationError> {
         let result = ColumnEntity::find()
             .filter(ColumnColumn::BoardId.eq(board_id))
+            .order_by_asc(ColumnColumn::Position)
             .all(&self.db)
             .await
             .map_err(ApplicationError::DatabaseError)?;
