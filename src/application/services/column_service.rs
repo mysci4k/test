@@ -2,7 +2,8 @@ use crate::{
     application::dto::{ColumnDto, CreateColumnDto, UpdateColumnDto},
     domain::{
         events::{
-            BoardEvent, ColumnCreatedEvent, ColumnMovedEvent, ColumnUpdatedEvent, SharedEventBus,
+            BoardEvent, ColumnCreatedEvent, ColumnDeletedEvent, ColumnMovedEvent,
+            ColumnUpdatedEvent, SharedEventBus,
         },
         repositories::{BoardMemberRepository, Column, ColumnRepository},
     },
@@ -331,5 +332,49 @@ impl ColumnService {
             created_at: saved_column.created_at,
             updated_at: saved_column.updated_at,
         }))
+    }
+
+    pub async fn delete_column(
+        &self,
+        column_id: Uuid,
+        user_id: Uuid,
+    ) -> Result<u64, ApplicationError> {
+        let column = self
+            .column_repository
+            .find_by_id(column_id)
+            .await?
+            .ok_or_else(|| ApplicationError::NotFound {
+                message: "Column with the given ID not found".to_string(),
+            })?;
+        println!("{}", column.board_id);
+
+        if !self
+            .board_member_repository
+            .check_permissions(
+                column.board_id,
+                user_id,
+                vec![BoardMemberRoleEnum::Owner, BoardMemberRoleEnum::Moderator],
+            )
+            .await?
+        {
+            return Err(ApplicationError::Forbidden {
+                message: "You don't have permission to perform this action".to_string(),
+            });
+        }
+
+        let deleted_column = self.column_repository.delete(column_id).await?;
+
+        self.event_bus
+            .publish(
+                column.board_id,
+                BoardEvent::ColumnDeleted(ColumnDeletedEvent {
+                    column_id,
+                    deleted_by: user_id,
+                    timestamp: Utc::now().fixed_offset(),
+                }),
+            )
+            .await;
+
+        Ok(deleted_column)
     }
 }
