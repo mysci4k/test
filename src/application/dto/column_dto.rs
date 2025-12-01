@@ -14,8 +14,6 @@ pub struct CreateColumnDto {
         message = "Column name must be between 1 and 100 characters long"
     ))]
     pub name: String,
-    #[validate(range(min = 0, message = "Column position must be a non-negative integer"))]
-    pub position: i32,
     pub board_id: Uuid,
 }
 
@@ -35,7 +33,7 @@ pub struct UpdateColumnDto {
 pub struct ColumnDto {
     pub id: Uuid,
     pub name: String,
-    pub position: i32,
+    pub position: String,
     pub board_id: Uuid,
     pub created_at: DateTime<FixedOffset>,
     pub updated_at: DateTime<FixedOffset>,
