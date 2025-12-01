@@ -38,6 +38,7 @@ use utoipa::{
         crate::presentation::http::column_controller::get_column,
         crate::presentation::http::column_controller::get_board_columns,
         crate::presentation::http::column_controller::update_column,
+        crate::presentation::http::column_controller::move_column,
 
         // Websocket endpoints
         crate::presentation::http::websocket_controller::websocket_handler
