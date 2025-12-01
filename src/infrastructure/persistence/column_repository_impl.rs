@@ -84,4 +84,13 @@ impl ColumnRepository for SeaOrmColumnRepository {
 
         Ok(Self::to_domain(result))
     }
+
+    async fn delete(&self, column_id: Uuid) -> Result<u64, ApplicationError> {
+        let result = ColumnEntity::delete_by_id(column_id)
+            .exec(&self.db)
+            .await
+            .map_err(ApplicationError::DatabaseError)?;
+
+        Ok(result.rows_affected)
+    }
 }
