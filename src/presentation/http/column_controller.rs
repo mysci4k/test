@@ -18,7 +18,8 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
             .service(create_column)
             .service(get_column)
             .service(get_board_columns)
-            .service(update_column),
+            .service(update_column)
+            .service(move_column),
     );
 }
 
@@ -156,6 +157,40 @@ async fn update_column(
 
     Ok(ApiResponse::Updated {
         message: "Column updated successfully".to_string(),
+        data: column,
+    })
+}
+
+#[utoipa::path(
+    put,
+    description = "Moves a column to a new position",
+    path = "/column/{column_id}/move/{position}",
+    responses(
+        (status = 200, description = "Column moved successfully", body = ApiResponseSchema<ColumnDto>),
+        (status = 400, description = "Bad Request", body = ApplicationErrorSchema),
+        (status = 401, description = "Unauthorized", body = ApplicationErrorSchema),
+        (status = 403, description = "You don't have permission to perform this action", body = ApplicationErrorSchema),
+        (status = 404, description = "Column with the given ID not found", body = ApplicationErrorSchema)
+    ),
+    tag = "Column",
+    security(
+        ("session_cookie" = [])
+    )
+ )]
+#[put("/{column_id}/move/{position}")]
+async fn move_column(
+    column_service: web::Data<Arc<ColumnService>>,
+    path: web::Path<(Uuid, usize)>,
+    user_id: web::ReqData<Uuid>,
+) -> Result<ApiResponse<ColumnDto>, ApplicationError> {
+    let (column_id, position) = path.into_inner();
+    let user_id = user_id.into_inner();
+    let column = column_service
+        .move_column(position, column_id, user_id)
+        .await?;
+
+    Ok(ApiResponse::Updated {
+        message: "Column moved successfully".to_string(),
         data: column,
     })
 }
