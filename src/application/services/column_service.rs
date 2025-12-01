@@ -1,7 +1,9 @@
 use crate::{
     application::dto::{ColumnDto, CreateColumnDto, UpdateColumnDto},
     domain::{
-        events::{BoardEvent, ColumnCreatedEvent, ColumnUpdatedEvent, SharedEventBus},
+        events::{
+            BoardEvent, ColumnCreatedEvent, ColumnMovedEvent, ColumnUpdatedEvent, SharedEventBus,
+        },
         repositories::{BoardMemberRepository, Column, ColumnRepository},
     },
     shared::{error::ApplicationError, utils::FractionalIndexGenerator},
@@ -225,6 +227,109 @@ impl ColumnService {
             board_id: updated_column.board_id,
             created_at: updated_column.created_at,
             updated_at: updated_column.updated_at,
+        }))
+    }
+
+    pub async fn move_column(
+        &self,
+        target_position: usize,
+        column_id: Uuid,
+        user_id: Uuid,
+    ) -> Result<ColumnDto, ApplicationError> {
+        let column = self
+            .column_repository
+            .find_by_id(column_id)
+            .await?
+            .ok_or_else(|| ApplicationError::NotFound {
+                message: "Column with the given ID not found".to_string(),
+            })?;
+
+        if !self
+            .board_member_repository
+            .check_permissions(
+                column.board_id,
+                user_id,
+                vec![BoardMemberRoleEnum::Owner, BoardMemberRoleEnum::Moderator],
+            )
+            .await?
+        {
+            return Err(ApplicationError::Forbidden {
+                message: "You don't have permission to perform this action".to_string(),
+            });
+        }
+
+        let mut all_columns = self
+            .column_repository
+            .find_by_board_id(column.board_id)
+            .await?;
+
+        all_columns.sort_by(|a, b| a.position.cmp(&b.position));
+
+        let current_index = all_columns
+            .iter()
+            .position(|c| c.id == column.id)
+            .ok_or_else(|| ApplicationError::InternalError {
+                message: "Failed to determine current column index".to_string(),
+            })?;
+
+        if current_index == target_position {
+            return Ok(ColumnDto::from_entity(ColumnModel {
+                id: column.id,
+                name: column.name,
+                position: column.position,
+                board_id: column.board_id,
+                created_at: column.created_at,
+                updated_at: column.updated_at,
+            }));
+        }
+
+        if target_position >= all_columns.len() {
+            return Err(ApplicationError::BadRequest {
+                message: format!(
+                    "Target position is out of bounds (0 - {})",
+                    all_columns.len() - 1
+                ),
+            });
+        }
+
+        let other_columns: Vec<String> = all_columns
+            .iter()
+            .filter(|c| c.id != column_id)
+            .map(|c| c.position.clone())
+            .collect();
+
+        let new_position =
+            FractionalIndexGenerator::generate_for_position(&other_columns, target_position)
+                .map_err(|err| ApplicationError::BadRequest {
+                    message: format!("Failed to calculate new position: {}", err),
+                })?;
+
+        let mut updated_column = column.clone();
+        updated_column.position = new_position;
+        updated_column.updated_at = Utc::now().fixed_offset();
+
+        let saved_column = self.column_repository.update(updated_column).await?;
+
+        self.event_bus
+            .publish(
+                saved_column.board_id,
+                BoardEvent::ColumnMoved(ColumnMovedEvent {
+                    column_id,
+                    old_position: current_index,
+                    new_position: target_position,
+                    moved_by: user_id,
+                    timestamp: saved_column.updated_at,
+                }),
+            )
+            .await;
+
+        Ok(ColumnDto::from_entity(ColumnModel {
+            id: saved_column.id,
+            name: saved_column.name,
+            position: saved_column.position,
+            board_id: saved_column.board_id,
+            created_at: saved_column.created_at,
+            updated_at: saved_column.updated_at,
         }))
     }
 }
