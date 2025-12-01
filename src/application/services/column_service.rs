@@ -346,7 +346,6 @@ impl ColumnService {
             .ok_or_else(|| ApplicationError::NotFound {
                 message: "Column with the given ID not found".to_string(),
             })?;
-        println!("{}", column.board_id);
 
         if !self
             .board_member_repository
