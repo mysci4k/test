@@ -15,6 +15,7 @@ pub enum BoardEvent {
     ColumnCreated(ColumnCreatedEvent),
     ColumnUpdated(ColumnUpdatedEvent),
     ColumnMoved(ColumnMovedEvent),
+    ColumnDeleted(ColumnDeletedEvent),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -101,5 +102,13 @@ pub struct ColumnMovedEvent {
     pub old_position: usize,
     pub new_position: usize,
     pub moved_by: Uuid,
+    pub timestamp: DateTime<FixedOffset>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ColumnDeletedEvent {
+    pub column_id: Uuid,
+    pub deleted_by: Uuid,
     pub timestamp: DateTime<FixedOffset>,
 }
