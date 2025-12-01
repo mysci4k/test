@@ -78,7 +78,7 @@ pub struct MemberRemovedEvent {
 pub struct ColumnCreatedEvent {
     pub column_id: Uuid,
     pub name: String,
-    pub position: i32,
+    pub position: String,
     pub board_id: Uuid,
     pub created_by: Uuid,
     pub timestamp: DateTime<FixedOffset>,
