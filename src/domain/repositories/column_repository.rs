@@ -7,14 +7,14 @@ use uuid::Uuid;
 pub struct Column {
     pub id: Uuid,
     pub name: String,
-    pub position: i32,
+    pub position: String,
     pub board_id: Uuid,
     pub created_at: DateTime<FixedOffset>,
     pub updated_at: DateTime<FixedOffset>,
 }
 
 impl Column {
-    pub fn new(id: Uuid, name: String, position: i32, board_id: Uuid) -> Self {
+    pub fn new(id: Uuid, name: String, position: String, board_id: Uuid) -> Self {
         let now = Utc::now().fixed_offset();
 
         Self {
