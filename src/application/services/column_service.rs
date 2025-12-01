@@ -150,7 +150,9 @@ impl ColumnService {
             });
         }
 
-        let columns = self.column_repository.find_by_board_id(board_id).await?;
+        let mut columns = self.column_repository.find_by_board_id(board_id).await?;
+
+        columns.sort_by(|a, b| a.position.cmp(&b.position));
 
         Ok(columns
             .into_iter()
