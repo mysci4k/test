@@ -1,7 +1,8 @@
 use crate::application::dto::{
-    ActivationQueryDto, AddBoardMemberDto, BoardDto, BoardMemberDto, CreateBoardDto,
+    ActivationQueryDto, AddBoardMemberDto, BoardDto, BoardMemberDto, ColumnDto, CreateBoardDto,
     CreateColumnDto, CreateUserDto, DeleteBoardMemberDto, ForgotPasswordQueryDto, LoginDto,
-    ResendActivationQueryDto, ResetPasswordDto, UpdateBoardDto, UpdateBoardMemberRoleDto, UserDto,
+    ResendActivationQueryDto, ResetPasswordDto, UpdateBoardDto, UpdateBoardMemberRoleDto,
+    UpdateColumnDto, UserDto,
 };
 use utoipa::{
     Modify, OpenApi,
@@ -39,6 +40,7 @@ use utoipa::{
         crate::presentation::http::column_controller::get_board_columns,
         crate::presentation::http::column_controller::update_column,
         crate::presentation::http::column_controller::move_column,
+        crate::presentation::http::column_controller::delete_column,
 
         // Websocket endpoints
         crate::presentation::http::websocket_controller::websocket_handler
@@ -68,7 +70,9 @@ use utoipa::{
             DeleteBoardMemberDto,
 
             // Column DTOs
-            CreateColumnDto
+            ColumnDto,
+            CreateColumnDto,
+            UpdateColumnDto
         )
     ),
     tags(
