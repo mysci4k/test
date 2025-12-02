@@ -20,7 +20,7 @@ impl MigrationTrait for Migration {
                             .extra("DEFAULT uuidv7()"),
                     )
                     .col(ColumnDef::new(Column::Name).string_len(100).not_null())
-                    .col(ColumnDef::new(Column::Position).integer().not_null())
+                    .col(ColumnDef::new(Column::Position).string_len(50).not_null())
                     .col(ColumnDef::new(Column::BoardId).uuid().not_null())
                     .col(
                         ColumnDef::new(Column::CreatedAt)

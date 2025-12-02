@@ -12,6 +12,10 @@ pub enum BoardEvent {
     MemberAdded(MemberAddedEvent),
     MemberRoleChanged(MemberRoleChangedEvent),
     MemberRemoved(MemberRemovedEvent),
+    ColumnCreated(ColumnCreatedEvent),
+    ColumnUpdated(ColumnUpdatedEvent),
+    ColumnMoved(ColumnMovedEvent),
+    ColumnDeleted(ColumnDeletedEvent),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -68,5 +72,43 @@ pub struct MemberRemovedEvent {
     pub board_id: Uuid,
     pub user_id: Uuid,
     pub removed_by: Uuid,
+    pub timestamp: DateTime<FixedOffset>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ColumnCreatedEvent {
+    pub column_id: Uuid,
+    pub name: String,
+    pub position: String,
+    pub board_id: Uuid,
+    pub created_by: Uuid,
+    pub timestamp: DateTime<FixedOffset>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ColumnUpdatedEvent {
+    pub column_id: Uuid,
+    pub name: Option<String>,
+    pub updated_by: Uuid,
+    pub timestamp: DateTime<FixedOffset>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ColumnMovedEvent {
+    pub column_id: Uuid,
+    pub old_position: usize,
+    pub new_position: usize,
+    pub moved_by: Uuid,
+    pub timestamp: DateTime<FixedOffset>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ColumnDeletedEvent {
+    pub column_id: Uuid,
+    pub deleted_by: Uuid,
     pub timestamp: DateTime<FixedOffset>,
 }
