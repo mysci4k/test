@@ -116,11 +116,11 @@ impl ColumnService {
                 message: "Column with the given ID not found".to_string(),
             })?;
 
-        if !self
+        if self
             .board_member_repository
             .find_by_board_and_user_id(column.board_id, user_id)
             .await?
-            .is_some()
+            .is_none()
         {
             return Err(ApplicationError::Forbidden {
                 message: "You don't have access to this board".to_string(),
@@ -142,11 +142,11 @@ impl ColumnService {
         board_id: Uuid,
         user_id: Uuid,
     ) -> Result<Vec<ColumnDto>, ApplicationError> {
-        if !self
+        if self
             .board_member_repository
             .find_by_board_and_user_id(board_id, user_id)
             .await?
-            .is_some()
+            .is_none()
         {
             return Err(ApplicationError::Forbidden {
                 message: "You don't have access to this board".to_string(),
