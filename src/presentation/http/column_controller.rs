@@ -26,14 +26,16 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
 
 #[utoipa::path(
     post,
-    description = "Creates a new column",
+    description = "***PROTECTED ENDPOINT***\n\nCreates a new column within a board. The column will be positioned at the end of the board. Only the board owner and moderator can create columns.",
     path = "/column/",
     request_body = CreateColumnDto,
     responses(
-        (status = 201, description = "Column created successfully", body = ApiResponseSchema<ColumnDto>),
-        (status = 400, description = "Bad Request", body = ApplicationErrorSchema),
-        (status = 401, description = "Unauthorized", body = ApplicationErrorSchema),
-        (status = 403, description = "You don't have permission to perform this action", body = ApplicationErrorSchema)
+        (status = 201, description = "Created - Column created successfully", body = ApiResponseSchema<ColumnDto>),
+        (status = 400, description = "Bad Request - Invalid input data", body = ApplicationErrorSchema),
+        (status = 401, description = "Unauthorized - No active session or session has expired", body = ApplicationErrorSchema),
+        (status = 403, description = "Forbidden - User doesn't have permission to create columns in this board", body = ApplicationErrorSchema),
+        (status = 404, description = "Not Found - Board with the given ID not found", body = ApplicationErrorSchema),
+        (status = 500, description = "Internal Server Error - Failed to create column", body = ApplicationErrorSchema)
     ),
     tag = "Column",
     security(
@@ -59,21 +61,24 @@ async fn create_column(
 
 #[utoipa::path(
     get,
-    description = "Retrieves a column by its ID",
-    path = "/column/{column_id}",
+    description = "***PROTECTED ENDPOINT***\n\nRetrieves detailed information about a specific column by its ID. User must be a member of the board to access this endpoint.",
+    path = "/column/{columnId}",
+    params(
+        ("columnId" = Uuid, Path, description = "Unique identifier of the column")
+    ),
     responses(
-        (status = 200, description = "Column data retrieved successfully", body = ApiResponseSchema<ColumnDto>),
-        (status = 400, description = "Bad Request", body = ApplicationErrorSchema),
-        (status = 401, description = "Unauthorized", body = ApplicationErrorSchema),
-        (status = 403, description = "You don't have access to this board", body = ApplicationErrorSchema),
-        (status = 404, description = "Column with the given ID not found", body = ApplicationErrorSchema)
+        (status = 200, description = "OK - Column data retrieved successfully", body = ApiResponseSchema<ColumnDto>),
+        (status = 401, description = "Unauthorized - No active session or session has expired", body = ApplicationErrorSchema),
+        (status = 403, description = "Forbidden - User doesn't have access to the board containing this column", body = ApplicationErrorSchema),
+        (status = 404, description = "Not Found - Column with the given ID not found", body = ApplicationErrorSchema),
+        (status = 500, description = "Internal Server Error - Failed to retrieve column", body = ApplicationErrorSchema)
     ),
     tag = "Column",
     security(
         ("session_cookie" = [])
     )
  )]
-#[get("/{column_id}")]
+#[get("/{columnId}")]
 async fn get_column(
     column_service: web::Data<Arc<ColumnService>>,
     column_id: web::Path<Uuid>,
@@ -94,20 +99,23 @@ async fn get_column(
 
 #[utoipa::path(
     get,
-    description = "Retrieves all columns for a given board",
-    path = "/column/board/{board_id}",
+    description = "***PROTECTED ENDPOINT***\n\nRetrieves all columns for a specific board, ordered by their position. User must be a member of the board to access this endpoint.",
+    path = "/column/board/{boardId}",
+    params(
+        ("boardId" = Uuid, Path, description = "Unique identifier of the board")
+    ),
     responses(
-        (status = 200, description = "Columns retrieved successfully", body = ApiResponseSchema<Vec<ColumnDto>>),
-        (status = 400, description = "Bad Request", body = ApplicationErrorSchema),
-        (status = 401, description = "Unauthorized", body = ApplicationErrorSchema),
-        (status = 403, description = "You don't have access to this board", body = ApplicationErrorSchema),
+        (status = 200, description = "OK - Columns retrieved successfully", body = ApiResponseSchema<Vec<ColumnDto>>),
+        (status = 401, description = "Unauthorized - No active session or session has expired", body = ApplicationErrorSchema),
+        (status = 403, description = "Forbidden - User doesn't have access to this board", body = ApplicationErrorSchema),
+        (status = 500, description = "Internal Server Error - Failed to retrieve columns", body = ApplicationErrorSchema)
     ),
     tag = "Column",
     security(
         ("session_cookie" = [])
     )
  )]
-#[get("/board/{board_id}")]
+#[get("/board/{boardId}")]
 async fn get_board_columns(
     column_service: web::Data<Arc<ColumnService>>,
     board_id: web::Path<Uuid>,
@@ -128,22 +136,26 @@ async fn get_board_columns(
 
 #[utoipa::path(
     put,
-    description = "Updates an existing column",
-    path = "/column/{column_id}",
+    description = "***PROTECTED ENDPOINT***\n\nUpdates column information. Only the board owner and moderator can update column details.",
+    path = "/column/{columnId}",
+    params(
+        ("columnId" = Uuid, Path, description = "Unique identifier of the column")
+    ),
     request_body = UpdateColumnDto,
     responses(
-        (status = 200, description = "Column updated successfully", body = ApiResponseSchema<ColumnDto>),
-        (status = 400, description = "Bad Request", body = ApplicationErrorSchema),
-        (status = 401, description = "Unauthorized", body = ApplicationErrorSchema),
-        (status = 403, description = "You don't have access to this board", body = ApplicationErrorSchema),
-        (status = 404, description = "Column with the given ID not found", body = ApplicationErrorSchema)
+        (status = 200, description = "OK - Column updated successfully", body = ApiResponseSchema<ColumnDto>),
+        (status = 400, description = "Bad Request - Invalid input data", body = ApplicationErrorSchema),
+        (status = 401, description = "Unauthorized - No active session or session has expired", body = ApplicationErrorSchema),
+        (status = 403, description = "Forbidden - User doesn't have permission to update columns in this board", body = ApplicationErrorSchema),
+        (status = 404, description = "Not Found - Column with the given ID not found", body = ApplicationErrorSchema),
+        (status = 500, description = "Internal Server Error - Failed to update column", body = ApplicationErrorSchema)
     ),
     tag = "Column",
     security(
         ("session_cookie" = [])
     )
  )]
-#[put("/{column_id}")]
+#[put("/{columnId}")]
 async fn update_column(
     column_service: web::Data<Arc<ColumnService>>,
     dto: web::Json<UpdateColumnDto>,
@@ -164,21 +176,25 @@ async fn update_column(
 
 #[utoipa::path(
     put,
-    description = "Moves a column to a new position",
-    path = "/column/{column_id}/move/{position}",
+    description = "***PROTECTED ENDPOINT***\n\nMoves a column to a new position within the board. Other columns will be automatically reordered. Position is 0-indexed. Only the board owner and moderator can create columns.",
+    path = "/column/{columnId}/move/{position}",
+    params(
+        ("columnId" = Uuid, Path, description = "Unique identifier of the column"),
+        ("position" = usize, Path, description = "New position index for the column (0-based)")
+    ),
     responses(
-        (status = 200, description = "Column moved successfully", body = ApiResponseSchema<ColumnDto>),
-        (status = 400, description = "Bad Request", body = ApplicationErrorSchema),
-        (status = 401, description = "Unauthorized", body = ApplicationErrorSchema),
-        (status = 403, description = "You don't have permission to perform this action", body = ApplicationErrorSchema),
-        (status = 404, description = "Column with the given ID not found", body = ApplicationErrorSchema)
+        (status = 200, description = "OK - Column moved successfully", body = ApiResponseSchema<ColumnDto>),
+        (status = 401, description = "Unauthorized - No active session or session has expired", body = ApplicationErrorSchema),
+        (status = 403, description = "Forbidden - User doesn't have permission to reorder columns in this board", body = ApplicationErrorSchema),
+        (status = 404, description = "Not Found - Column with the given ID not found", body = ApplicationErrorSchema),
+        (status = 500, description = "Internal Server Error - Failed to move column", body = ApplicationErrorSchema)
     ),
     tag = "Column",
     security(
         ("session_cookie" = [])
     )
  )]
-#[put("/{column_id}/move/{position}")]
+#[put("/{columnId}/move/{position}")]
 async fn move_column(
     column_service: web::Data<Arc<ColumnService>>,
     path: web::Path<(Uuid, usize)>,
@@ -198,21 +214,24 @@ async fn move_column(
 
 #[utoipa::path(
     delete,
-    description = "Deletes a column by its ID",
-    path = "/column/{column_id}",
+    description = "***PROTECTED ENDPOINT***\n\nPermanently deletes a column and all its associated tasks. Remaining columns will be automatically reordered. This action cannot be undone. Only the board owner and moderator can create columns.",
+    path = "/column/{columnId}",
+    params(
+        ("columnId" = Uuid, Path, description = "Unique identifier of the column")
+    ),
     responses(
-        (status = 200, description = "Column deleted successfully", body = ApiResponseSchema<u64>),
-        (status = 400, description = "Bad Request", body = ApplicationErrorSchema),
-        (status = 401, description = "Unauthorized", body = ApplicationErrorSchema),
-        (status = 403, description = "You don't have permission to perform this action", body = ApplicationErrorSchema),
-        (status = 404, description = "Column with the given ID not found", body = ApplicationErrorSchema)
+        (status = 200, description = "OK - Column deleted successfully", body = ApiResponseSchema<u64>),
+        (status = 401, description = "Unauthorized - No active session or session has expired", body = ApplicationErrorSchema),
+        (status = 403, description = "Forbidden - User doesn't have permission to delete columns in this board", body = ApplicationErrorSchema),
+        (status = 404, description = "Not Found - Column with the given ID not found", body = ApplicationErrorSchema),
+        (status = 500, description = "Internal Server Error - Failed to delete column", body = ApplicationErrorSchema)
     ),
     tag = "Column",
     security(
         ("session_cookie" = [])
     )
  )]
-#[delete("/{column_id}")]
+#[delete("/{columnId}")]
 async fn delete_column(
     column_service: web::Data<Arc<ColumnService>>,
     column_id: web::Path<Uuid>,

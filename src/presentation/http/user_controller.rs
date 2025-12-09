@@ -15,12 +15,13 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
 
 #[utoipa::path(
     get,
-    description = "Retrieves the profile of the authenticated user",
+    description = "***PROTECTED ENDPOINT***\n\nRetrieves the complete profile information of the currently authenticated user.",
     path = "/user/profile",
     responses(
-        (status = 200, description = "User profile retrieved successfully", body = ApiResponseSchema<UserDto>),
-        (status = 401, description = "Unauthorized", body = ApplicationErrorSchema),
-        (status = 404, description = "User not found", body = ApplicationErrorSchema)
+        (status = 200, description = "OK - User profile retrieved successfully", body = ApiResponseSchema<UserDto>),
+        (status = 401, description = "Unauthorized - No active session or session has expired", body = ApplicationErrorSchema),
+        (status = 404, description = "Not found - User with the given ID not found", body = ApplicationErrorSchema),
+        (status = 500, description = "Internal server error - Failed to retrieve user profile", body = ApplicationErrorSchema)
     ),
     tag = "User",
     security(
