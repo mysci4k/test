@@ -36,7 +36,7 @@ impl AuthService {
 
         if self.user_repository.exists_by_email(&dto.email).await? {
             return Err(ApplicationError::Conflict {
-                message: "User with this email already exists".to_string(),
+                message: "User with this email address already exists".to_string(),
             });
         }
 
@@ -99,7 +99,7 @@ impl AuthService {
             .user_repository
             .find_by_email(&dto.email)
             .await?
-            .ok_or_else(|| ApplicationError::BadRequest {
+            .ok_or_else(|| ApplicationError::Unauthorized {
                 message: "Invalid credentials".to_string(),
             })?;
 
@@ -111,19 +111,19 @@ impl AuthService {
         .map_err(|_| ApplicationError::InternalError {
             message: "Failed to verify password".to_string(),
         })?
-        .map_err(|_| ApplicationError::BadRequest {
-            message: "Password verification error".to_string(),
+        .map_err(|_| ApplicationError::InternalError {
+            message: "Password verification failed".to_string(),
         })?;
 
         if !password_valid {
-            return Err(ApplicationError::BadRequest {
+            return Err(ApplicationError::Unauthorized {
                 message: "Invalid credentials".to_string(),
             });
         }
 
         if !user.is_active {
             return Err(ApplicationError::Forbidden {
-                message: "Access denied".to_string(),
+                message: "Account is not activated. Please check your email for the activation link or request a new activation email".to_string(),
             });
         }
 
@@ -189,11 +189,11 @@ impl AuthService {
             .find_by_email(&email)
             .await?
             .ok_or_else(|| ApplicationError::NotFound {
-                message: "User with the given email not found".to_string(),
+                message: "User with the given email address not found".to_string(),
             })?;
 
         if user.is_active {
-            return Err(ApplicationError::BadRequest {
+            return Err(ApplicationError::Conflict {
                 message: "Account is already activated".to_string(),
             });
         }
@@ -207,7 +207,7 @@ impl AuthService {
             })?;
 
         if has_token {
-            return Err(ApplicationError::BadRequest {
+            return Err(ApplicationError::TooManyRequests {
                 message: "An activation email was already sent. Please check your inbox or wait for the token to expire".to_string(),
             });
         }
@@ -242,11 +242,11 @@ impl AuthService {
             .find_by_email(&email)
             .await?
             .ok_or_else(|| ApplicationError::NotFound {
-                message: "User with the given email not found".to_string(),
+                message: "User with the given email address not found".to_string(),
             })?;
 
         if !user.is_active {
-            return Err(ApplicationError::BadRequest {
+            return Err(ApplicationError::Unauthorized {
                 message: "Account is not activated. Please activate your account first".to_string(),
             });
         }
@@ -260,7 +260,7 @@ impl AuthService {
             })?;
 
         if has_token {
-            return Err(ApplicationError::BadRequest {
+            return Err(ApplicationError::TooManyRequests {
                 message: "A password reset email was already sent. Please check your inbox or wait for the token to expire".to_string(),
             });
         }
