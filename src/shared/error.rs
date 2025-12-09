@@ -29,6 +29,8 @@ pub enum ApplicationError {
     NotFound { message: String },
     #[display("Conflict")]
     Conflict { message: String },
+    #[display("Too Many Requests")]
+    TooManyRequests { message: String },
     #[display("Internal Server Error")]
     InternalError { message: String },
     #[display("Validation Error")]
@@ -57,6 +59,7 @@ impl ApplicationError {
             ApplicationError::Forbidden { message } => message.to_owned(),
             ApplicationError::NotFound { message } => message.to_owned(),
             ApplicationError::Conflict { message } => message.to_owned(),
+            ApplicationError::TooManyRequests { message } => message.to_owned(),
             ApplicationError::InternalError { message } => message.to_owned(),
             ApplicationError::ValidationError { message } => message.to_string(),
             ApplicationError::DatabaseError(err) => err.to_string(),
@@ -72,6 +75,7 @@ impl ResponseError for ApplicationError {
             ApplicationError::Forbidden { .. } => StatusCode::FORBIDDEN,
             ApplicationError::NotFound { .. } => StatusCode::NOT_FOUND,
             ApplicationError::Conflict { .. } => StatusCode::CONFLICT,
+            ApplicationError::TooManyRequests { .. } => StatusCode::TOO_MANY_REQUESTS,
             ApplicationError::InternalError { .. } => StatusCode::INTERNAL_SERVER_ERROR,
             ApplicationError::ValidationError { .. } => StatusCode::BAD_REQUEST,
             ApplicationError::DatabaseError { .. } => StatusCode::INTERNAL_SERVER_ERROR,

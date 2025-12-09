@@ -31,13 +31,14 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
 
 #[utoipa::path(
     post,
-    description = "Creates a new board",
+    description = "***PROTECTED ENDPOINT***\n\nCreates a new Kanban board. The authenticated user automatically becomes the owner with full permissions.",
     path = "/board/",
     request_body = CreateBoardDto,
     responses(
-        (status = 201, description = "Board created successfully", body = ApiResponseSchema<BoardDto>),
-        (status = 400, description = "Bad Request", body = ApplicationErrorSchema),
-        (status = 401, description = "Unauthorized", body = ApplicationErrorSchema)
+        (status = 201, description = "Created - Board created successfully", body = ApiResponseSchema<BoardDto>),
+        (status = 400, description = "Bad Request - Invalid input data", body = ApplicationErrorSchema),
+        (status = 401, description = "Unauthorized - No active session or session has expired", body = ApplicationErrorSchema),
+        (status = 500, description = "Internal server error - Failed to create board", body = ApplicationErrorSchema)
     ),
     tag = "Board",
     security(
@@ -63,19 +64,23 @@ async fn create_board(
 
 #[utoipa::path(
     get,
-    description = "Retrieves a board by its ID",
-    path = "/board/{board_id}",
+    description = "***PROTECTED ENDPOINT***\n\nRetrieves detailed information about a specific board by its ID. Only board members can access this endpoint.",
+    path = "/board/{boardId}",
+    params(
+        ("boardId" = Uuid, Path, description = "Unique identifier of the board")
+    ),
     responses(
-        (status = 200, description = "Board data retrieved successfully", body = ApiResponseSchema<BoardDto>),
-        (status = 401, description = "Unauthorized", body = ApplicationErrorSchema),
-        (status = 404, description = "Board not found", body = ApplicationErrorSchema)
+        (status = 200, description = "OK - Board data retrieved successfully", body = ApiResponseSchema<BoardDto>),
+        (status = 401, description = "Unauthorized - No active session or session has expired", body = ApplicationErrorSchema),
+        (status = 404, description = "Not found - Board with the given ID not found", body = ApplicationErrorSchema),
+        (status = 500, description = "Internal server error - Failed to retrieve board", body = ApplicationErrorSchema)
     ),
     tag = "Board",
     security(
         ("session_cookie" = [])
     )
 )]
-#[get("/{board_id}")]
+#[get("/{boardId}")]
 async fn get_board(
     board_service: web::Data<Arc<BoardService>>,
     board_id: web::Path<Uuid>,
@@ -95,11 +100,12 @@ async fn get_board(
 
 #[utoipa::path(
     get,
-    description = "Retrieves all boards the user is a member of",
+    description = "***PROTECTED ENDPOINT***\n\nRetrieves a list of all boards where the authenticated user is a member.",
     path = "/board/",
     responses(
-        (status = 200, description = "Boards retrieved successfully", body = ApiResponseSchema<Vec<BoardDto>>),
-        (status = 401, description = "Unauthorized", body = ApplicationErrorSchema)
+        (status = 200, description = "OK - Boards retrieved successfully", body = ApiResponseSchema<Vec<BoardDto>>),
+        (status = 401, description = "Unauthorized - No active session or session has expired", body = ApplicationErrorSchema),
+        (status = 500, description = "Internal server error - Failed to retrieve boards", body = ApplicationErrorSchema)
     ),
     tag = "Board",
     security(
@@ -124,20 +130,26 @@ async fn get_user_boards(
 
 #[utoipa::path(
     put,
-    description = "Updates an existing board",
-    path = "/board/{board_id}",
+    description = "***PROTECTED ENDPOINT***\n\nUpdates board information. Only the board owner and moderator can update board details.",
+    path = "/board/{boardId}",
+    params(
+        ("boardId" = Uuid, Path, description = "Unique identifier of the board")
+    ),
     request_body = UpdateBoardDto,
     responses(
-        (status = 200, description = "Board updated successfully", body = ApiResponseSchema<BoardDto>),
-        (status = 403, description = "You don't have permission to perform this action", body = ApplicationErrorSchema),
-        (status = 404, description = "Board with the given ID not found", body = ApplicationErrorSchema)
+        (status = 200, description = "OK - Board updated successfully", body = ApiResponseSchema<BoardDto>),
+        (status = 400, description = "Bad Request - Invalid input data", body = ApplicationErrorSchema),
+        (status = 401, description = "Unauthorized - No active session or session has expired", body = ApplicationErrorSchema),
+        (status = 403, description = "Forbidden - Only board owner and moderator can update board details", body = ApplicationErrorSchema),
+        (status = 404, description = "Not found - Board with the given ID not found", body = ApplicationErrorSchema),
+        (status = 500, description = "Internal server error - Failed to update board", body = ApplicationErrorSchema)
     ),
     tag = "Board",
     security(
         ("session_cookie" = [])
     )
 )]
-#[put("/{board_id}")]
+#[put("/{boardId}")]
 async fn update_board(
     board_service: web::Data<Arc<BoardService>>,
     dto: web::Json<UpdateBoardDto>,
@@ -158,19 +170,24 @@ async fn update_board(
 
 #[utoipa::path(
     delete,
-    description = "Deletes a board by its ID",
-    path = "/board/{board_id}",
+    description = "***PROTECTED ENDPOINT***\n\nPermanently deletes a board and all its associated data (columns, tasks, and members). Only the board owner can delete boards. This action cannot be undone.",
+    path = "/board/{boardId}",
+    params(
+        ("boardId" = Uuid, Path, description = "Unique identifier of the board")
+    ),
     responses(
-        (status = 200, description = "Board deleted successfully", body = ApiResponseSchema<u64>),
-        (status = 403, description = "You don't have permission to perform this action", body = ApplicationErrorSchema),
-        (status = 404, description = "Board with the given ID not found", body = ApplicationErrorSchema)
+        (status = 200, description = "OK - Board deleted successfully", body = ApiResponseSchema<u64>),
+        (status = 401, description = "Unauthorized - No active session or session has expired", body = ApplicationErrorSchema),
+        (status = 403, description = "Forbidden - Only board owner can delete boards", body = ApplicationErrorSchema),
+        (status = 404, description = "Not found - Board with the given ID not found", body = ApplicationErrorSchema),
+        (status = 500, description = "Internal server error - Failed to delete board", body = ApplicationErrorSchema)
     ),
     tag = "Board",
     security(
         ("session_cookie" = [])
     )
 )]
-#[delete("/{board_id}")]
+#[delete("/{boardId}")]
 async fn delete_board(
     board_service: web::Data<Arc<BoardService>>,
     board_id: web::Path<Uuid>,
@@ -188,15 +205,16 @@ async fn delete_board(
 
 #[utoipa::path(
     post,
-    description = "Adds a new member to a board",
+    description = "***PROTECTED ENDPOINT***\n\nAdds a new member to a board by user ID. Only the board owner and moderator can add new members. The new member will have the default member role and can be changed later.",
     path = "/board/member",
     request_body = AddBoardMemberDto,
     responses(
-        (status = 201, description = "New board member added successfully", body = ApiResponseSchema<BoardMemberDto>),
-        (status = 400, description = "Bad Request", body = ApplicationErrorSchema),
-        (status = 401, description = "Unauthorized", body = ApplicationErrorSchema),
-        (status = 403, description = "You don't have permission to perform this action", body = ApplicationErrorSchema),
-        (status = 404, description = "Board with the given ID not found", body = ApplicationErrorSchema)
+        (status = 201, description = "Created - Board member added successfully", body = ApiResponseSchema<BoardMemberDto>),
+        (status = 400, description = "Bad Request - Invalid input data", body = ApplicationErrorSchema),
+        (status = 401, description = "Unauthorized - No active session or session has expired", body = ApplicationErrorSchema),
+        (status = 403, description = "Forbidden - Only board owner and moderator can add members", body = ApplicationErrorSchema),
+        (status = 404, description = "Not found - Board or user with the given ID not found", body = ApplicationErrorSchema),
+        (status = 500, description = "Internal server error - Failed to add board member", body = ApplicationErrorSchema)
     ),
     tag = "Board",
     security(
@@ -222,15 +240,16 @@ async fn add_new_board_member(
 
 #[utoipa::path(
     put,
-    description = "Updates a board member's role",
+    description = "***PROTECTED ENDPOINT***\n\nUpdates a board member's role. Only the board owner can modify member roles. The board owner cannot change their own role.",
     path = "/board/member",
     request_body = UpdateBoardMemberRoleDto,
     responses(
-        (status = 200, description = "Board member role updated successfully", body = ApiResponseSchema<BoardMemberDto>),
-        (status = 400, description = "Bad Request", body = ApplicationErrorSchema),
-        (status = 401, description = "Unauthorized", body = ApplicationErrorSchema),
-        (status = 403, description = "You don't have permission to perform this action", body = ApplicationErrorSchema),
-        (status = 404, description = "Board with the given ID not found", body = ApplicationErrorSchema)
+        (status = 200, description = "OK - Board member role updated successfully", body = ApiResponseSchema<BoardMemberDto>),
+        (status = 400, description = "Bad Request - Invalid input data", body = ApplicationErrorSchema),
+        (status = 401, description = "Unauthorized - No active session or session has expired", body = ApplicationErrorSchema),
+        (status = 403, description = "Forbidden - Only board owner can update member roles", body = ApplicationErrorSchema),
+        (status = 404, description = "Not found - The specified user is not a member of this board", body = ApplicationErrorSchema),
+        (status = 500, description = "Internal server error - Failed to update board member role", body = ApplicationErrorSchema)
     ),
     tag = "Board",
     security(
@@ -256,15 +275,17 @@ async fn update_board_member_role(
 
 #[utoipa::path(
     delete,
-    description = "Removes a member from a board",
+    description = "***PROTECTED ENDPOINT***\n\nRemoves a member from a board. Only the board owner can remove members. The board owner cannot remove themselves - to leave as owner, transfer ownership first or delete the board.",
     path = "/board/member",
-    request_body = AddBoardMemberDto,
+    request_body = DeleteBoardMemberDto,
     responses(
-        (status = 200, description = "Board member removed successfully", body = ApiResponseSchema<u64>),
-        (status = 400, description = "Bad Request", body = ApplicationErrorSchema),
-        (status = 401, description = "Unauthorized", body = ApplicationErrorSchema),
-        (status = 403, description = "You don't have permission to perform this action", body = ApplicationErrorSchema),
-        (status = 404, description = "Board with the given ID not found", body = ApplicationErrorSchema)
+        (status = 200, description = "OK - Board member removed successfully", body = ApiResponseSchema<u64>),
+        (status = 400, description = "Bad Request - Invalid input data", body = ApplicationErrorSchema),
+        (status = 401, description = "Unauthorized - No active session or session has expired", body = ApplicationErrorSchema),
+        (status = 403, description = "Forbidden - Only board owner can remove members", body = ApplicationErrorSchema),
+        (status = 404, description = "Not found - The specified user is not a member of this board", body = ApplicationErrorSchema),
+        (status = 409, description = "Conflict - Cannot remove yourself from the board", body = ApplicationErrorSchema),
+        (status = 500, description = "Internal server error - Failed to remove board member", body = ApplicationErrorSchema)
     ),
     tag = "Board",
     security(

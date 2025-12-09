@@ -16,20 +16,24 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
 
 #[utoipa::path(
     get,
-    description = "Establishes WebSocket connection",
-    path = "/ws/board/{board_id}",
+    description = "***PROTECTED ENDPOINT***\n\nEstablishes a WebSocket connection for real-time board updates. The connection enables bidirectional communication for live collaboration features such as task updates, column changes, and member activities. User must be a member of the board to establish the connection.",
+    path = "/ws/board/{boardId}",
+    params(
+        ("boardId" = Uuid, Path, description = "Unique identifier of the board")
+    ),
     responses(
-        (status = 101, description = "WebSocket connection established"),
-        (status = 401, description = "Unauthorized", body = ApplicationErrorSchema),
-        (status = 403, description = "Forbidden - no access to this board", body = ApplicationErrorSchema),
-        (status = 404, description = "Board not found", body = ApplicationErrorSchema)
+        (status = 101, description = "Switching Protocols - WebSocket connection established successfully"),
+        (status = 401, description = "Unauthorized - No active session or session has expired", body = ApplicationErrorSchema),
+        (status = 403, description = "Forbidden - User is not a member of this board", body = ApplicationErrorSchema),
+        (status = 404, description = "Not Found - Board with the given ID not found", body = ApplicationErrorSchema),
+        (status = 500, description = "Internal Server Error - Failed to establish WebSocket connection", body = ApplicationErrorSchema)
     ),
     tag = "WebSocket",
     security(
         ("session_cookie" = [])
     )
 )]
-#[get("/board/{board_id}")]
+#[get("/board/{boardId}")]
 async fn websocket_handler(
     websocket_service: web::Data<Arc<WebSocketService>>,
     req: HttpRequest,

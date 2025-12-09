@@ -40,14 +40,14 @@ pub async fn initialize_infrastructure()
     Ok((database, redis_client))
 }
 
-pub fn initialize_repositories(
-    database: DatabaseConnection,
-) -> (
+type Repositories = (
     Arc<dyn UserRepository>,
     Arc<dyn BoardRepository>,
     Arc<dyn BoardMemberRepository>,
     Arc<dyn ColumnRepository>,
-) {
+);
+
+pub fn initialize_repositories(database: DatabaseConnection) -> Repositories {
     let user_repository =
         Arc::new(SeaOrmUserRepository::new(database.clone())) as Arc<dyn UserRepository>;
     let board_repository =

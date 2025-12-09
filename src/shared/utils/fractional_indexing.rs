@@ -67,8 +67,4 @@ impl FractionalIndexGenerator {
 
         Ok(wrapper.value)
     }
-
-    pub fn validate(postion: &str) -> bool {
-        Self::from_string(postion).is_ok()
-    }
 }

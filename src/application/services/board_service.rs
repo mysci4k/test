@@ -289,13 +289,13 @@ impl BoardService {
         dto.validate()?;
 
         if dto.user_id == user_id {
-            return Err(ApplicationError::BadRequest {
+            return Err(ApplicationError::Conflict {
                 message: "You cannot change your own role".to_string(),
             });
         }
 
         if dto.role == BoardMemberRoleEnum::Owner {
-            return Err(ApplicationError::BadRequest {
+            return Err(ApplicationError::Conflict {
                 message: "You cannot assign the Owner role to another user".to_string(),
             });
         }
@@ -354,7 +354,7 @@ impl BoardService {
         dto.validate()?;
 
         if dto.user_id == user_id {
-            return Err(ApplicationError::BadRequest {
+            return Err(ApplicationError::Conflict {
                 message: "You cannot remove yourself from the board".to_string(),
             });
         }
