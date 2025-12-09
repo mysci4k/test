@@ -76,17 +76,17 @@ use utoipa::{
         )
     ),
     tags(
-        (name = "Authentication", description = "Authentication management endpoints"),
-        (name = "User", description = "User management endpoints"),
-        (name = "Board", description = "Board management endpoints"),
-        (name = "Column", description = "Column management endpoints"),
-        (name = "WebSocket", description = "WebSocket management endpoints")
+        (name = "Authentication", description = "Authentication management endpoints."),
+        (name = "User", description = "User management endpoints."),
+        (name = "Board", description = "Board management endpoints."),
+        (name = "Column", description = "Column management endpoints."),
+        (name = "WebSocket", description = "WebSocket management endpoints.")
     ),
     modifiers(&SecurityAddon),
     info(
-        title = "Kanban API",
+        title = "Kanban Board API",
         version = "0.1.0",
-        description = "REST API backend for a Kanban application",
+        description = "REST API backend for a Kanban application.",
         license(
             name = "MIT",
             url = "https://opensource.org/license/mit/"
