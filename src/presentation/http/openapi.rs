@@ -45,6 +45,7 @@ use utoipa::{
         // Task endpoints
         crate::presentation::http::task_controller::create_task,
         crate::presentation::http::task_controller::get_task,
+        crate::presentation::http::task_controller::get_column_tasks,
 
         // Websocket endpoints
         crate::presentation::http::websocket_controller::websocket_handler
