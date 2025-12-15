@@ -16,6 +16,7 @@ pub enum BoardEvent {
     ColumnUpdated(ColumnUpdatedEvent),
     ColumnMoved(ColumnMovedEvent),
     ColumnDeleted(ColumnDeletedEvent),
+    TaskCreated(TaskCreatedEvent),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -110,5 +111,18 @@ pub struct ColumnMovedEvent {
 pub struct ColumnDeletedEvent {
     pub column_id: Uuid,
     pub deleted_by: Uuid,
+    pub timestamp: DateTime<FixedOffset>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TaskCreatedEvent {
+    pub task_id: Uuid,
+    pub title: String,
+    pub description: Option<String>,
+    pub tags: Option<Vec<String>>,
+    pub position: String,
+    pub column_id: Uuid,
+    pub created_by: Uuid,
     pub timestamp: DateTime<FixedOffset>,
 }
