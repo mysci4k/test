@@ -44,4 +44,5 @@ pub trait TaskRepository: Send + Sync {
     async fn create(&self, task: Task) -> Result<Task, ApplicationError>;
     async fn find_by_id(&self, task_id: Uuid) -> Result<Option<Task>, ApplicationError>;
     async fn find_by_column_id(&self, column_id: Uuid) -> Result<Vec<Task>, ApplicationError>;
+    async fn update(&self, task: Task) -> Result<Task, ApplicationError>;
 }

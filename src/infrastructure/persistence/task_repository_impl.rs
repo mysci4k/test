@@ -74,4 +74,15 @@ impl TaskRepository for SeaOrmTaskRepository {
 
         Ok(result.into_iter().map(Self::to_domain).collect())
     }
+
+    async fn update(&self, task: Task) -> Result<Task, ApplicationError> {
+        let active_model = Self::to_active_model(task);
+
+        let result = TaskEntity::update(active_model)
+            .exec(&self.db)
+            .await
+            .map_err(ApplicationError::DatabaseError)?;
+
+        Ok(Self::to_domain(result))
+    }
 }
