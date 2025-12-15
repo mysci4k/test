@@ -13,7 +13,12 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 pub fn configure(cfg: &mut web::ServiceConfig) {
-    cfg.service(web::scope("/task").service(create_task).service(get_task));
+    cfg.service(
+        web::scope("/task")
+            .service(create_task)
+            .service(get_task)
+            .service(get_column_tasks),
+    );
 }
 
 #[utoipa::path(
@@ -81,6 +86,43 @@ async fn get_task(
     Ok(ApiResponse::Found {
         message: "Task data retrieved successfully".to_string(),
         data: task,
+        page: None,
+        total_pages: None,
+    })
+}
+
+#[utoipa::path(
+    get,
+    description = "***PROTECTED ENDPOINT***\n\nRetrieves all tasks for a specific column, ordered by their position. User must be a member of the board to access this endpoint.",
+    path = "/task/column/{columnId}",
+    params(
+        ("columnId" = Uuid, Path, description = "Unique identifier of the column")
+    ),
+    responses(
+        (status = 200, description = "OK - Tasks retrieved successfully", body = ApiResponseSchema<Vec<TaskDto>>),
+        (status = 401, description = "Unauthorized - No active session or session has expired", body = ApplicationErrorSchema),
+        (status = 403, description = "Forbidden - User doesn't have access to this board", body = ApplicationErrorSchema),
+        (status = 404, description = "Not Found - Column with the given ID not found", body = ApplicationErrorSchema),
+        (status = 500, description = "Internal Server Error - Failed to retrieve tasks", body = ApplicationErrorSchema)
+    ),
+    tag = "Task",
+    security(
+        ("session_cookie" = [])
+    )
+)]
+#[get("/column/{columnId}")]
+async fn get_column_tasks(
+    task_service: web::Data<Arc<TaskService>>,
+    column_id: web::Path<Uuid>,
+    user_id: web::ReqData<Uuid>,
+) -> Result<ApiResponse<Vec<TaskDto>>, ApplicationError> {
+    let column_id = column_id.into_inner();
+    let user_id = user_id.into_inner();
+    let tasks = task_service.get_column_tasks(column_id, user_id).await?;
+
+    Ok(ApiResponse::Found {
+        message: "Tasks retrieved successfully".to_string(),
+        data: tasks,
         page: None,
         total_pages: None,
     })
