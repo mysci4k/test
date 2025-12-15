@@ -140,4 +140,35 @@ impl TaskService {
 
         Ok(TaskDto::from_domain(task))
     }
+
+    pub async fn get_column_tasks(
+        &self,
+        column_id: Uuid,
+        user_id: Uuid,
+    ) -> Result<Vec<TaskDto>, ApplicationError> {
+        let column = self
+            .column_repository
+            .find_by_id(column_id)
+            .await?
+            .ok_or_else(|| ApplicationError::NotFound {
+                message: "Column with the given ID not found".to_string(),
+            })?;
+
+        if self
+            .board_member_repository
+            .find_by_board_and_user_id(column.board_id, user_id)
+            .await?
+            .is_none()
+        {
+            return Err(ApplicationError::Forbidden {
+                message: "You don't have access to this board".to_string(),
+            });
+        }
+
+        let mut tasks = self.task_repository.find_by_column_id(column_id).await?;
+
+        tasks.sort_by(|a, b| a.position.cmp(&b.position));
+
+        Ok(tasks.into_iter().map(TaskDto::from_domain).collect())
+    }
 }
