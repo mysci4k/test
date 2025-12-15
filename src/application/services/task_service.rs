@@ -1,11 +1,12 @@
 use crate::{
-    application::dto::{CreateTaskDto, TaskDto},
+    application::dto::{CreateTaskDto, TaskDto, UpdateTaskDto},
     domain::{
-        events::{BoardEvent, SharedEventBus, TaskCreatedEvent},
+        events::{BoardEvent, SharedEventBus, TaskCreatedEvent, TaskUpdatedEvent},
         repositories::{BoardMemberRepository, ColumnRepository, Task, TaskRepository},
     },
     shared::{error::ApplicationError, utils::FractionalIndexGenerator},
 };
+use chrono::Utc;
 use std::sync::Arc;
 use uuid::Uuid;
 use validator::Validate;
@@ -170,5 +171,70 @@ impl TaskService {
         tasks.sort_by(|a, b| a.position.cmp(&b.position));
 
         Ok(tasks.into_iter().map(TaskDto::from_domain).collect())
+    }
+
+    pub async fn update_task(
+        &self,
+        dto: UpdateTaskDto,
+        task_id: Uuid,
+        user_id: Uuid,
+    ) -> Result<TaskDto, ApplicationError> {
+        dto.validate()?;
+
+        let mut task = self
+            .task_repository
+            .find_by_id(task_id)
+            .await?
+            .ok_or_else(|| ApplicationError::NotFound {
+                message: "Task with the given ID not found".to_string(),
+            })?;
+
+        let column = self
+            .column_repository
+            .find_by_id(task.column_id)
+            .await?
+            .ok_or_else(|| ApplicationError::NotFound {
+                message: "Column with the given ID not found".to_string(),
+            })?;
+
+        if self
+            .board_member_repository
+            .find_by_board_and_user_id(column.board_id, user_id)
+            .await?
+            .is_none()
+        {
+            return Err(ApplicationError::Forbidden {
+                message: "You don't have access to this board".to_string(),
+            });
+        }
+
+        if let Some(title) = dto.title {
+            task.title = title;
+        }
+        if dto.description.is_some() {
+            task.description = dto.description;
+        }
+        if dto.tags.is_some() {
+            task.tags = dto.tags;
+        }
+        task.updated_at = Utc::now().fixed_offset();
+
+        let updated_task = self.task_repository.update(task).await?;
+
+        self.event_bus
+            .publish(
+                column.board_id,
+                BoardEvent::TaskUpdated(TaskUpdatedEvent {
+                    task_id,
+                    title: Some(updated_task.title.clone()),
+                    description: updated_task.description.clone(),
+                    tags: updated_task.tags.clone(),
+                    updated_by: user_id,
+                    timestamp: updated_task.updated_at,
+                }),
+            )
+            .await;
+
+        Ok(TaskDto::from_domain(updated_task))
     }
 }
