@@ -13,7 +13,7 @@ pub struct Model {
     #[sea_orm(column_type = "Text", nullable)]
     pub description: Option<String>,
     pub tags: Option<Vec<String>>,
-    pub position: i32,
+    pub position: String,
     pub column_id: Uuid,
     pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,
