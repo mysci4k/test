@@ -2,7 +2,7 @@ use crate::application::dto::{
     ActivationQueryDto, AddBoardMemberDto, BoardDto, BoardMemberDto, ColumnDto, CreateBoardDto,
     CreateColumnDto, CreateTaskDto, CreateUserDto, DeleteBoardMemberDto, ForgotPasswordQueryDto,
     LoginDto, ResendActivationQueryDto, ResetPasswordDto, TaskDto, UpdateBoardDto,
-    UpdateBoardMemberRoleDto, UpdateColumnDto, UserDto,
+    UpdateBoardMemberRoleDto, UpdateColumnDto, UpdateTaskDto, UserDto,
 };
 use utoipa::{
     Modify, OpenApi,
@@ -46,6 +46,7 @@ use utoipa::{
         crate::presentation::http::task_controller::create_task,
         crate::presentation::http::task_controller::get_task,
         crate::presentation::http::task_controller::get_column_tasks,
+        crate::presentation::http::task_controller::update_task,
 
         // Websocket endpoints
         crate::presentation::http::websocket_controller::websocket_handler
@@ -81,7 +82,8 @@ use utoipa::{
 
             // Task DTOs
             TaskDto,
-            CreateTaskDto
+            CreateTaskDto,
+            UpdateTaskDto
         )
     ),
     tags(
