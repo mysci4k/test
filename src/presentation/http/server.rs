@@ -1,7 +1,8 @@
 use crate::{
     presentation::{
         configure_auth_roures, configure_board_routes, configure_column_routes,
-        configure_user_routes, configure_websocket_routes, http::ApiDoc, middleware::RequireAuth,
+        configure_task_routes, configure_user_routes, configure_websocket_routes, http::ApiDoc,
+        middleware::RequireAuth,
     },
     shared::{
         config::AppState,
@@ -45,6 +46,7 @@ pub async fn configure_server(
             .app_data(web::Data::new(app_state.user_service.clone()))
             .app_data(web::Data::new(app_state.board_service.clone()))
             .app_data(web::Data::new(app_state.column_service.clone()))
+            .app_data(web::Data::new(app_state.task_service.clone()))
             .app_data(web::Data::new(app_state.websocket_service.clone()))
             .wrap(Logger::default())
             .wrap(RequireAuth)
@@ -63,6 +65,7 @@ pub async fn configure_server(
                     .configure(configure_user_routes)
                     .configure(configure_board_routes)
                     .configure(configure_column_routes)
+                    .configure(configure_task_routes)
                     .configure(configure_websocket_routes),
             )
     })
