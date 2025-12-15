@@ -1,6 +1,6 @@
 use crate::{
     application::{
-        dto::{CreateTaskDto, TaskDto},
+        dto::{CreateTaskDto, TaskDto, UpdateTaskDto},
         services::TaskService,
     },
     shared::{
@@ -8,7 +8,7 @@ use crate::{
         response::{ApiResponse, ApiResponseSchema},
     },
 };
-use actix_web::{get, post, web};
+use actix_web::{get, post, put, web};
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -17,7 +17,8 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
         web::scope("/task")
             .service(create_task)
             .service(get_task)
-            .service(get_column_tasks),
+            .service(get_column_tasks)
+            .service(update_task),
     );
 }
 
@@ -125,5 +126,45 @@ async fn get_column_tasks(
         data: tasks,
         page: None,
         total_pages: None,
+    })
+}
+
+#[utoipa::path(
+    put,
+    description = "***PROTECTED ENDPOINT***\n\nUpdates task information. All board members can update tasks.",
+    path = "/task/{taskId}",
+    params(
+        ("taskId" = Uuid, Path, description = "Unique identifier of the task")
+    ),
+    request_body = UpdateTaskDto,
+    responses(
+        (status = 200, description = "OK - Task updated successfully", body = ApiResponseSchema<TaskDto>),
+        (status = 400, description = "Bad Request - Invalid input data", body = ApplicationErrorSchema),
+        (status = 401, description = "Unauthorized - No active session or session has expired", body = ApplicationErrorSchema),
+        (status = 403, description = "Forbidden - User doesn't have access to this board", body = ApplicationErrorSchema),
+        (status = 404, description = "Not Found - Task with the given ID not found", body = ApplicationErrorSchema),
+        (status = 500, description = "Internal Server Error - Failed to update task", body = ApplicationErrorSchema)
+    ),
+    tag = "Task",
+    security(
+        ("session_cookie" = [])
+    )
+)]
+#[put("/{taskId}")]
+async fn update_task(
+    task_service: web::Data<Arc<TaskService>>,
+    dto: web::Json<UpdateTaskDto>,
+    task_id: web::Path<Uuid>,
+    user_id: web::ReqData<Uuid>,
+) -> Result<ApiResponse<TaskDto>, ApplicationError> {
+    let task_id = task_id.into_inner();
+    let user_id = user_id.into_inner();
+    let task = task_service
+        .update_task(dto.into_inner(), task_id, user_id)
+        .await?;
+
+    Ok(ApiResponse::Updated {
+        message: "Task updated successfully".to_string(),
+        data: task,
     })
 }
