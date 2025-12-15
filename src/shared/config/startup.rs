@@ -1,10 +1,13 @@
 use crate::{
     application::services::{
-        AuthService, BoardService, ColumnService, UserService, WebSocketService,
+        AuthService, BoardService, ColumnService, TaskService, UserService, WebSocketService,
     },
     domain::{
         events::SharedEventBus,
-        repositories::{BoardMemberRepository, BoardRepository, ColumnRepository, UserRepository},
+        repositories::{
+            BoardMemberRepository, BoardRepository, ColumnRepository, TaskRepository,
+            UserRepository,
+        },
         services::{EmailService, TokenService},
     },
     infrastructure::{
@@ -13,7 +16,7 @@ use crate::{
         event_bus::InMemoryEventBus,
         persistence::{
             SeaOrmBoardMemberRepository, SeaOrmBoardRepository, SeaOrmColumnRepository,
-            SeaOrmUserRepository, database,
+            SeaOrmTaskRepository, SeaOrmUserRepository, database,
         },
     },
     shared::{config::AppState, utils::constants::REDIS_URL},
@@ -45,6 +48,7 @@ type Repositories = (
     Arc<dyn BoardRepository>,
     Arc<dyn BoardMemberRepository>,
     Arc<dyn ColumnRepository>,
+    Arc<dyn TaskRepository>,
 );
 
 pub fn initialize_repositories(database: DatabaseConnection) -> Repositories {
@@ -56,6 +60,7 @@ pub fn initialize_repositories(database: DatabaseConnection) -> Repositories {
         as Arc<dyn BoardMemberRepository>;
     let column_repository =
         Arc::new(SeaOrmColumnRepository::new(database.clone())) as Arc<dyn ColumnRepository>;
+    let task_repository = Arc::new(SeaOrmTaskRepository::new(database)) as Arc<dyn TaskRepository>;
 
     info!("Successfully initialized repositories");
 
@@ -64,6 +69,7 @@ pub fn initialize_repositories(database: DatabaseConnection) -> Repositories {
         board_repository,
         board_member_repository,
         column_repository,
+        task_repository,
     )
 }
 
@@ -80,6 +86,7 @@ pub fn initialize_services(
     board_repository: Arc<dyn BoardRepository>,
     board_member_repository: Arc<dyn BoardMemberRepository>,
     column_repository: Arc<dyn ColumnRepository>,
+    task_repository: Arc<dyn TaskRepository>,
     redis_client: RedisClient,
     event_bus: SharedEventBus,
 ) -> AppState {
@@ -101,6 +108,12 @@ pub fn initialize_services(
         event_bus.clone(),
     ));
     let column_service = Arc::new(ColumnService::new(
+        column_repository.clone(),
+        board_member_repository.clone(),
+        event_bus.clone(),
+    ));
+    let task_service = Arc::new(TaskService::new(
+        task_repository,
         column_repository,
         board_member_repository.clone(),
         event_bus.clone(),
@@ -114,6 +127,7 @@ pub fn initialize_services(
         user_service,
         board_service,
         column_service,
+        task_service,
         websocket_service,
     )
 }
