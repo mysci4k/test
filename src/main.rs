@@ -33,8 +33,13 @@ async fn main() -> Result<()> {
         .await
         .expect("Failed to initialize infrastructure");
 
-    let (user_repository, board_repository, board_member_repository, column_service) =
-        initialize_repositories(database);
+    let (
+        user_repository,
+        board_repository,
+        board_member_repository,
+        column_repository,
+        task_repository,
+    ) = initialize_repositories(database);
 
     let event_bus = initialize_event_bus();
 
@@ -42,7 +47,8 @@ async fn main() -> Result<()> {
         user_repository,
         board_repository,
         board_member_repository,
-        column_service,
+        column_repository,
+        task_repository,
         redis_client,
         event_bus,
     );
