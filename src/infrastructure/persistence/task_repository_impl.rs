@@ -56,6 +56,15 @@ impl TaskRepository for SeaOrmTaskRepository {
         Ok(Self::to_domain(result))
     }
 
+    async fn find_by_id(&self, task_id: Uuid) -> Result<Option<Task>, ApplicationError> {
+        let result = TaskEntity::find_by_id(task_id)
+            .one(&self.db)
+            .await
+            .map_err(ApplicationError::DatabaseError)?;
+
+        Ok(result.map(Self::to_domain))
+    }
+
     async fn find_by_column_id(&self, column_id: Uuid) -> Result<Vec<Task>, ApplicationError> {
         let result = TaskEntity::find()
             .filter(TaskColumn::ColumnId.eq(column_id))
