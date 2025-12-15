@@ -105,4 +105,39 @@ impl TaskService {
 
         Ok(TaskDto::from_domain(saved_task))
     }
+
+    pub async fn get_task_by_id(
+        &self,
+        task_id: Uuid,
+        user_id: Uuid,
+    ) -> Result<TaskDto, ApplicationError> {
+        let task = self
+            .task_repository
+            .find_by_id(task_id)
+            .await?
+            .ok_or_else(|| ApplicationError::NotFound {
+                message: "Task with the given ID not found".to_string(),
+            })?;
+
+        let column = self
+            .column_repository
+            .find_by_id(task.column_id)
+            .await?
+            .ok_or_else(|| ApplicationError::NotFound {
+                message: "Column with the given ID not found".to_string(),
+            })?;
+
+        if self
+            .board_member_repository
+            .find_by_board_and_user_id(column.board_id, user_id)
+            .await?
+            .is_none()
+        {
+            return Err(ApplicationError::Forbidden {
+                message: "You don't have access to this board".to_string(),
+            });
+        }
+
+        Ok(TaskDto::from_domain(task))
+    }
 }
