@@ -8,7 +8,7 @@ use crate::{
         response::{ApiResponse, ApiResponseSchema},
     },
 };
-use actix_web::{get, post, put, web};
+use actix_web::{delete, get, post, put, web};
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -19,7 +19,8 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
             .service(get_task)
             .service(get_column_tasks)
             .service(update_task)
-            .service(move_task),
+            .service(move_task)
+            .service(delete_task),
     );
 }
 
@@ -206,5 +207,40 @@ async fn move_task(
     Ok(ApiResponse::Updated {
         message: "Task moved successfully".to_string(),
         data: task,
+    })
+}
+
+#[utoipa::path(
+    delete,
+    description = "***PROTECTED ENDPOINT***\n\nPermanently deletes a task. This action cannot be undone. All board members can delete tasks.",
+    path = "/task/{taskId}",
+    params(
+        ("taskId" = Uuid, Path, description = "Unique identifier of the task")
+    ),
+    responses(
+        (status = 200, description = "OK - Task deleted successfully", body = ApiResponseSchema<u64>),
+        (status = 401, description = "Unauthorized - No active session or session has expired", body = ApplicationErrorSchema),
+        (status = 403, description = "Forbidden - User doesn't have access to this board", body = ApplicationErrorSchema),
+        (status = 404, description = "Not Found - Task with the given ID not found", body = ApplicationErrorSchema),
+        (status = 500, description = "Internal Server Error - Failed to delete task", body = ApplicationErrorSchema)
+    ),
+    tag = "Task",
+    security(
+        ("session_cookie" = [])
+    )
+)]
+#[delete("/{taskId}")]
+async fn delete_task(
+    task_service: web::Data<Arc<TaskService>>,
+    task_id: web::Path<Uuid>,
+    user_id: web::ReqData<Uuid>,
+) -> Result<ApiResponse<u64>, ApplicationError> {
+    let task_id = task_id.into_inner();
+    let user_id = user_id.into_inner();
+    let rows_affected = task_service.delete_task(task_id, user_id).await?;
+
+    Ok(ApiResponse::Deleted {
+        message: "Task deleted successfully".to_string(),
+        rows_affected,
     })
 }
