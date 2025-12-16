@@ -70,7 +70,7 @@ impl TaskDto {
 
 fn validate_tags(tags: &[String]) -> Result<(), ValidationError> {
     for tag in tags {
-        if tag.len() < 1 || tag.len() > 50 {
+        if tag.is_empty() || tag.len() > 50 {
             return Err(ValidationError::new("tags"));
         }
     }
