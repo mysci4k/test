@@ -10,7 +10,7 @@ use crate::{
     shared::{error::ApplicationError, utils::FractionalIndexGenerator},
 };
 use chrono::Utc;
-use entity::{BoardMemberRoleEnum, ColumnModel};
+use entity::BoardMemberRoleEnum;
 use std::sync::Arc;
 use uuid::Uuid;
 use validator::Validate;
@@ -93,14 +93,7 @@ impl ColumnService {
             )
             .await;
 
-        Ok(ColumnDto::from_entity(ColumnModel {
-            id: saved_column.id,
-            name: saved_column.name,
-            position: saved_column.position,
-            board_id: saved_column.board_id,
-            created_at: saved_column.created_at,
-            updated_at: saved_column.updated_at,
-        }))
+        Ok(ColumnDto::from_domain(saved_column))
     }
 
     pub async fn get_column_by_id(
@@ -127,14 +120,7 @@ impl ColumnService {
             });
         }
 
-        Ok(ColumnDto::from_entity(ColumnModel {
-            id: column.id,
-            name: column.name,
-            position: column.position,
-            board_id: column.board_id,
-            created_at: column.created_at,
-            updated_at: column.updated_at,
-        }))
+        Ok(ColumnDto::from_domain(column))
     }
 
     pub async fn get_board_columns(
@@ -157,19 +143,7 @@ impl ColumnService {
 
         columns.sort_by(|a, b| a.position.cmp(&b.position));
 
-        Ok(columns
-            .into_iter()
-            .map(|column| {
-                ColumnDto::from_entity(ColumnModel {
-                    id: column.id,
-                    name: column.name,
-                    position: column.position,
-                    board_id: column.board_id,
-                    created_at: column.created_at,
-                    updated_at: column.updated_at,
-                })
-            })
-            .collect())
+        Ok(columns.into_iter().map(ColumnDto::from_domain).collect())
     }
 
     pub async fn update_column(
@@ -221,14 +195,7 @@ impl ColumnService {
             )
             .await;
 
-        Ok(ColumnDto::from_entity(ColumnModel {
-            id: updated_column.id,
-            name: updated_column.name,
-            position: updated_column.position,
-            board_id: updated_column.board_id,
-            created_at: updated_column.created_at,
-            updated_at: updated_column.updated_at,
-        }))
+        Ok(ColumnDto::from_domain(updated_column))
     }
 
     pub async fn move_column(
@@ -274,14 +241,7 @@ impl ColumnService {
             })?;
 
         if current_index == target_position {
-            return Ok(ColumnDto::from_entity(ColumnModel {
-                id: column.id,
-                name: column.name,
-                position: column.position,
-                board_id: column.board_id,
-                created_at: column.created_at,
-                updated_at: column.updated_at,
-            }));
+            return Ok(ColumnDto::from_domain(column));
         }
 
         if target_position >= all_columns.len() {
@@ -324,14 +284,7 @@ impl ColumnService {
             )
             .await;
 
-        Ok(ColumnDto::from_entity(ColumnModel {
-            id: saved_column.id,
-            name: saved_column.name,
-            position: saved_column.position,
-            board_id: saved_column.board_id,
-            created_at: saved_column.created_at,
-            updated_at: saved_column.updated_at,
-        }))
+        Ok(ColumnDto::from_domain(saved_column))
     }
 
     pub async fn delete_column(

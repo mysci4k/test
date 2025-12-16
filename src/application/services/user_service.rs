@@ -2,7 +2,6 @@ use crate::{
     application::dto::UserDto, domain::repositories::UserRepository,
     shared::error::ApplicationError,
 };
-use entity::UserModel;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -24,15 +23,6 @@ impl UserService {
                 message: "User with the given ID not found".to_string(),
             })?;
 
-        Ok(UserDto::from_entity(UserModel {
-            id: user.id,
-            email: user.email,
-            password: user.password,
-            first_name: user.first_name,
-            last_name: user.last_name,
-            is_active: user.is_active,
-            created_at: user.created_at,
-            updated_at: user.updated_at,
-        }))
+        Ok(UserDto::from_domain(user))
     }
 }
