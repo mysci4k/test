@@ -18,7 +18,8 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
             .service(create_task)
             .service(get_task)
             .service(get_column_tasks)
-            .service(update_task),
+            .service(update_task)
+            .service(move_task),
     );
 }
 
@@ -165,6 +166,46 @@ async fn update_task(
 
     Ok(ApiResponse::Updated {
         message: "Task updated successfully".to_string(),
+        data: task,
+    })
+}
+
+#[utoipa::path(
+    put,
+    description = "***PROTECTED ENDPOINT***\n\nMoves a task to a new position within the same column or to a different column. Position is 0-indexed. All board members can move tasks.",
+    path = "/task/{taskId}/move/{columnId}/{position}",
+    params(
+        ("taskId" = Uuid, Path, description = "Unique identifier of the task"),
+        ("columnId" = Uuid, Path, description = "Unique identifier of the column"),
+        ("position" = usize, Path, description = "New position index for the column (0-based)")
+    ),
+    responses(
+        (status = 200, description = "OK - Task moved successfully", body = ApiResponseSchema<TaskDto>),
+        (status = 400, description = "Bad Request - Invalid position or cannot move between different boards", body = ApplicationErrorSchema),
+        (status = 401, description = "Unauthorized - No active session or session has expired", body = ApplicationErrorSchema),
+        (status = 403, description = "Forbidden - User doesn't have access to this board", body = ApplicationErrorSchema),
+        (status = 404, description = "Not Found - Task or column with the given ID not found", body = ApplicationErrorSchema),
+        (status = 500, description = "Internal Server Error - Failed to move task", body = ApplicationErrorSchema)
+    ),
+    tag = "Task",
+    security(
+        ("session_cookie" = [])
+    )
+)]
+#[put("/{taskId}/move/{columnId}/{position}")]
+async fn move_task(
+    task_service: web::Data<Arc<TaskService>>,
+    path: web::Path<(Uuid, Uuid, usize)>,
+    user_id: web::ReqData<Uuid>,
+) -> Result<ApiResponse<TaskDto>, ApplicationError> {
+    let (task_id, column_id, position) = path.into_inner();
+    let user_id = user_id.into_inner();
+    let task = task_service
+        .move_task(position, task_id, column_id, user_id)
+        .await?;
+
+    Ok(ApiResponse::Updated {
+        message: "Task moved successfully".to_string(),
         data: task,
     })
 }
