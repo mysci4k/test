@@ -1,5 +1,5 @@
 use crate::application::services::{
-    AuthService, BoardService, ColumnService, UserService, WebSocketService,
+    AuthService, BoardService, ColumnService, TaskService, UserService, WebSocketService,
 };
 use std::sync::Arc;
 
@@ -9,6 +9,7 @@ pub struct AppState {
     pub user_service: Arc<UserService>,
     pub board_service: Arc<BoardService>,
     pub column_service: Arc<ColumnService>,
+    pub task_service: Arc<TaskService>,
     pub websocket_service: Arc<WebSocketService>,
 }
 
@@ -18,6 +19,7 @@ impl AppState {
         user_service: Arc<UserService>,
         board_service: Arc<BoardService>,
         column_service: Arc<ColumnService>,
+        task_service: Arc<TaskService>,
         websocket_service: Arc<WebSocketService>,
     ) -> Self {
         Self {
@@ -25,6 +27,7 @@ impl AppState {
             user_service,
             board_service,
             column_service,
+            task_service,
             websocket_service,
         }
     }

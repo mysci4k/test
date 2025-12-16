@@ -22,7 +22,7 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(Task::Title).string_len(254).not_null())
                     .col(ColumnDef::new(Task::Description).text())
                     .col(ColumnDef::new(Task::Tags).array(ColumnType::String(StringLen::N(50))))
-                    .col(ColumnDef::new(Task::Position).integer().not_null())
+                    .col(ColumnDef::new(Task::Position).string_len(50).not_null())
                     .col(ColumnDef::new(Task::ColumnId).uuid().not_null())
                     .col(
                         ColumnDef::new(Task::CreatedAt)
