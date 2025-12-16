@@ -1,7 +1,7 @@
 use crate::{
     application::dto::{CreateTaskDto, TaskDto, UpdateTaskDto},
     domain::{
-        events::{BoardEvent, SharedEventBus, TaskCreatedEvent, TaskUpdatedEvent},
+        events::{BoardEvent, SharedEventBus, TaskCreatedEvent, TaskMovedEvent, TaskUpdatedEvent},
         repositories::{BoardMemberRepository, ColumnRepository, Task, TaskRepository},
     },
     shared::{error::ApplicationError, utils::FractionalIndexGenerator},
@@ -236,5 +236,112 @@ impl TaskService {
             .await;
 
         Ok(TaskDto::from_domain(updated_task))
+    }
+
+    pub async fn move_task(
+        &self,
+        target_position: usize,
+        task_id: Uuid,
+        column_id: Uuid,
+        user_id: Uuid,
+    ) -> Result<TaskDto, ApplicationError> {
+        let task = self
+            .task_repository
+            .find_by_id(task_id)
+            .await?
+            .ok_or_else(|| ApplicationError::NotFound {
+                message: "Task with the given ID not found".to_string(),
+            })?;
+
+        let old_column = self
+            .column_repository
+            .find_by_id(task.column_id)
+            .await?
+            .ok_or_else(|| ApplicationError::NotFound {
+                message: "Source column with the given ID not found".to_string(),
+            })?;
+
+        let new_column = self
+            .column_repository
+            .find_by_id(column_id)
+            .await?
+            .ok_or_else(|| ApplicationError::NotFound {
+                message: "Target column with the given ID not found".to_string(),
+            })?;
+
+        if old_column.board_id != new_column.board_id {
+            return Err(ApplicationError::BadRequest {
+                message: "Cannot move task between columns of different boards".to_string(),
+            });
+        }
+
+        if self
+            .board_member_repository
+            .find_by_board_and_user_id(old_column.board_id, user_id)
+            .await?
+            .is_none()
+        {
+            return Err(ApplicationError::Forbidden {
+                message: "You don't have access to this board".to_string(),
+            });
+        }
+
+        let mut target_column_tasks = self.task_repository.find_by_column_id(column_id).await?;
+
+        target_column_tasks.sort_by(|a, b| a.position.cmp(&b.position));
+
+        let other_tasks: Vec<String> = target_column_tasks
+            .iter()
+            .filter(|t| t.id != task_id)
+            .map(|t| t.position.clone())
+            .collect();
+
+        if target_position > other_tasks.len() {
+            return Err(ApplicationError::BadRequest {
+                message: format!(
+                    "Target position is out of bounds (0 - {})",
+                    other_tasks.len()
+                ),
+            });
+        }
+
+        let new_position =
+            FractionalIndexGenerator::generate_for_position(&other_tasks, target_position)
+                .map_err(|err| ApplicationError::BadRequest {
+                    message: format!("Failed to generate position: {}", err),
+                })?;
+
+        let old_position = if task.column_id == column_id {
+            target_column_tasks
+                .iter()
+                .position(|t| t.id == task_id)
+                .unwrap_or(0)
+        } else {
+            0
+        };
+
+        let mut updated_task = task.clone();
+        updated_task.column_id = column_id;
+        updated_task.position = new_position;
+        updated_task.updated_at = Utc::now().fixed_offset();
+
+        let saved_task = self.task_repository.update(updated_task).await?;
+
+        self.event_bus
+            .publish(
+                old_column.board_id,
+                BoardEvent::TaskMoved(TaskMovedEvent {
+                    task_id,
+                    old_column_id: task.column_id,
+                    new_column_id: column_id,
+                    old_position,
+                    new_position: target_position,
+                    moved_by: user_id,
+                    timestamp: saved_task.updated_at,
+                }),
+            )
+            .await;
+
+        Ok(TaskDto::from_domain(saved_task))
     }
 }
