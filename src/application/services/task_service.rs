@@ -1,7 +1,10 @@
 use crate::{
     application::dto::{CreateTaskDto, TaskDto, UpdateTaskDto},
     domain::{
-        events::{BoardEvent, SharedEventBus, TaskCreatedEvent, TaskMovedEvent, TaskUpdatedEvent},
+        events::{
+            BoardEvent, SharedEventBus, TaskCreatedEvent, TaskDeletedEvent, TaskMovedEvent,
+            TaskUpdatedEvent,
+        },
         repositories::{BoardMemberRepository, ColumnRepository, Task, TaskRepository},
     },
     shared::{error::ApplicationError, utils::FractionalIndexGenerator},
@@ -343,5 +346,49 @@ impl TaskService {
             .await;
 
         Ok(TaskDto::from_domain(saved_task))
+    }
+
+    pub async fn delete_task(&self, task_id: Uuid, user_id: Uuid) -> Result<u64, ApplicationError> {
+        let task = self
+            .task_repository
+            .find_by_id(task_id)
+            .await?
+            .ok_or_else(|| ApplicationError::NotFound {
+                message: "Task with the given ID not found".to_string(),
+            })?;
+
+        let column = self
+            .column_repository
+            .find_by_id(task.column_id)
+            .await?
+            .ok_or_else(|| ApplicationError::NotFound {
+                message: "Column with the given ID not found".to_string(),
+            })?;
+
+        if self
+            .board_member_repository
+            .find_by_board_and_user_id(column.board_id, user_id)
+            .await?
+            .is_none()
+        {
+            return Err(ApplicationError::Forbidden {
+                message: "You don't have access to this board".to_string(),
+            });
+        }
+
+        let deleted_column = self.task_repository.delete(task_id).await?;
+
+        self.event_bus
+            .publish(
+                column.board_id,
+                BoardEvent::TaskDeleted(TaskDeletedEvent {
+                    task_id,
+                    deleted_by: user_id,
+                    timestamp: Utc::now().fixed_offset(),
+                }),
+            )
+            .await;
+
+        Ok(deleted_column)
     }
 }
