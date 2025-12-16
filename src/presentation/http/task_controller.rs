@@ -181,7 +181,6 @@ async fn update_task(
     ),
     responses(
         (status = 200, description = "OK - Task moved successfully", body = ApiResponseSchema<TaskDto>),
-        (status = 400, description = "Bad Request - Invalid position or cannot move between different boards", body = ApplicationErrorSchema),
         (status = 401, description = "Unauthorized - No active session or session has expired", body = ApplicationErrorSchema),
         (status = 403, description = "Forbidden - User doesn't have access to this board", body = ApplicationErrorSchema),
         (status = 404, description = "Not Found - Task or column with the given ID not found", body = ApplicationErrorSchema),
