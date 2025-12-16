@@ -1,9 +1,10 @@
 use chrono::{DateTime, FixedOffset};
-use entity::ColumnModel;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
 use validator::Validate;
+
+use crate::domain::repositories::Column;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Validate, ToSchema)]
 #[serde(rename_all = "camelCase")]
@@ -40,7 +41,7 @@ pub struct ColumnDto {
 }
 
 impl ColumnDto {
-    pub fn from_entity(column: ColumnModel) -> Self {
+    pub fn from_domain(column: Column) -> Self {
         Self {
             id: column.id,
             name: column.name,

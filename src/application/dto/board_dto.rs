@@ -1,9 +1,10 @@
 use chrono::{DateTime, FixedOffset};
-use entity::BoardModel;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
 use validator::Validate;
+
+use crate::domain::repositories::Board;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Validate, ToSchema)]
 #[serde(rename_all = "camelCase")]
@@ -49,7 +50,7 @@ pub struct BoardDto {
 }
 
 impl BoardDto {
-    pub fn from_entity(board: BoardModel) -> Self {
+    pub fn from_domain(board: Board) -> Self {
         Self {
             id: board.id,
             name: board.name,

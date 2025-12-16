@@ -1,9 +1,11 @@
 use chrono::{DateTime, FixedOffset};
-use entity::{BoardMemberModel, BoardMemberRoleEnum};
+use entity::BoardMemberRoleEnum;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
 use validator::Validate;
+
+use crate::domain::repositories::BoardMember;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Validate, ToSchema)]
 #[serde(rename_all = "camelCase")]
@@ -39,7 +41,7 @@ pub struct BoardMemberDto {
 }
 
 impl BoardMemberDto {
-    pub fn from_entity(board_member: BoardMemberModel) -> Self {
+    pub fn from_domain(board_member: BoardMember) -> Self {
         Self {
             id: board_member.id,
             board_id: board_member.board_id,

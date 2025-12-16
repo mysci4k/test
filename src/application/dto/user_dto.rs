@@ -1,6 +1,8 @@
-use crate::shared::utils::constants::{RE_ONLY_LETTERS, RE_SPECIAL_CHARS};
+use crate::{
+    domain::repositories::User,
+    shared::utils::constants::{RE_ONLY_LETTERS, RE_SPECIAL_CHARS},
+};
 use chrono::{DateTime, FixedOffset};
-use entity::UserModel;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
@@ -69,7 +71,7 @@ pub struct UserDto {
 }
 
 impl UserDto {
-    pub fn from_entity(user: UserModel) -> Self {
+    pub fn from_domain(user: User) -> Self {
         Self {
             id: user.id,
             email: user.email,
