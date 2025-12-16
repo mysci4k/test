@@ -7,7 +7,6 @@ use crate::{
     shared::{error::ApplicationError, utils::argon},
 };
 use actix_web::rt::task;
-use entity::UserModel;
 use std::sync::Arc;
 use uuid::Uuid;
 use validator::Validate;
@@ -80,16 +79,7 @@ impl AuthService {
                 message: "Failed to send activation email".to_string(),
             })?;
 
-        Ok(UserDto::from_entity(UserModel {
-            id: saved_user.id,
-            email: saved_user.email,
-            password: saved_user.password,
-            first_name: saved_user.first_name,
-            last_name: saved_user.last_name,
-            is_active: saved_user.is_active,
-            created_at: saved_user.created_at,
-            updated_at: saved_user.updated_at,
-        }))
+        Ok(UserDto::from_domain(saved_user))
     }
 
     pub async fn login(&self, dto: LoginDto) -> Result<UserDto, ApplicationError> {
@@ -127,16 +117,7 @@ impl AuthService {
             });
         }
 
-        Ok(UserDto::from_entity(UserModel {
-            id: user.id,
-            email: user.email,
-            password: user.password,
-            first_name: user.first_name,
-            last_name: user.last_name,
-            is_active: user.is_active,
-            created_at: user.created_at,
-            updated_at: user.updated_at,
-        }))
+        Ok(UserDto::from_domain(user))
     }
 
     pub async fn activate_user(
@@ -171,16 +152,7 @@ impl AuthService {
                 message: "Failed to delete activation token".to_string(),
             })?;
 
-        Ok(UserDto::from_entity(UserModel {
-            id: activated_user.id,
-            email: activated_user.email,
-            password: activated_user.password,
-            first_name: activated_user.first_name,
-            last_name: activated_user.last_name,
-            is_active: activated_user.is_active,
-            created_at: activated_user.created_at,
-            updated_at: activated_user.updated_at,
-        }))
+        Ok(UserDto::from_domain(activated_user))
     }
 
     pub async fn resend_activation_email(&self, email: String) -> Result<(), ApplicationError> {

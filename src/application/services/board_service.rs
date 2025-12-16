@@ -15,7 +15,7 @@ use crate::{
     shared::error::ApplicationError,
 };
 use chrono::Utc;
-use entity::{BoardMemberModel, BoardMemberRoleEnum, BoardModel};
+use entity::BoardMemberRoleEnum;
 use std::sync::Arc;
 use uuid::Uuid;
 use validator::Validate;
@@ -76,14 +76,7 @@ impl BoardService {
             )
             .await;
 
-        Ok(BoardDto::from_entity(BoardModel {
-            id: saved_board.id,
-            name: saved_board.name,
-            description: saved_board.description,
-            owner_id: saved_board.owner_id,
-            created_at: saved_board.created_at,
-            updated_at: saved_board.updated_at,
-        }))
+        Ok(BoardDto::from_domain(saved_board))
     }
 
     pub async fn get_board_by_id(
@@ -99,14 +92,7 @@ impl BoardService {
                 message: "Board with the given ID not found".to_string(),
             })?;
 
-        Ok(BoardDto::from_entity(BoardModel {
-            id: board.id,
-            name: board.name,
-            description: board.description,
-            owner_id: board.owner_id,
-            created_at: board.created_at,
-            updated_at: board.updated_at,
-        }))
+        Ok(BoardDto::from_domain(board))
     }
 
     pub async fn get_boards_by_membership(
@@ -115,19 +101,7 @@ impl BoardService {
     ) -> Result<Vec<BoardDto>, ApplicationError> {
         let boards = self.board_repository.find_by_membership(user_id).await?;
 
-        Ok(boards
-            .into_iter()
-            .map(|board| {
-                BoardDto::from_entity(BoardModel {
-                    id: board.id,
-                    name: board.name,
-                    description: board.description,
-                    owner_id: board.owner_id,
-                    created_at: board.created_at,
-                    updated_at: board.updated_at,
-                })
-            })
-            .collect())
+        Ok(boards.into_iter().map(BoardDto::from_domain).collect())
     }
 
     pub async fn update_board(
@@ -181,14 +155,7 @@ impl BoardService {
             )
             .await;
 
-        Ok(BoardDto::from_entity(BoardModel {
-            id: updated_board.id,
-            name: updated_board.name,
-            description: updated_board.description,
-            owner_id: updated_board.owner_id,
-            created_at: updated_board.created_at,
-            updated_at: updated_board.updated_at,
-        }))
+        Ok(BoardDto::from_domain(updated_board))
     }
 
     pub async fn delete_board(
@@ -271,14 +238,7 @@ impl BoardService {
             )
             .await;
 
-        Ok(BoardMemberDto::from_entity(BoardMemberModel {
-            id: saved_board_member.id,
-            board_id: saved_board_member.board_id,
-            user_id: saved_board_member.user_id,
-            role: saved_board_member.role,
-            created_at: saved_board_member.created_at,
-            updated_at: saved_board_member.updated_at,
-        }))
+        Ok(BoardMemberDto::from_domain(saved_board_member))
     }
 
     pub async fn update_board_member_role(
@@ -336,14 +296,7 @@ impl BoardService {
             )
             .await;
 
-        Ok(BoardMemberDto::from_entity(BoardMemberModel {
-            id: updated_board_member.id,
-            board_id: updated_board_member.board_id,
-            user_id: updated_board_member.user_id,
-            role: updated_board_member.role,
-            created_at: updated_board_member.created_at,
-            updated_at: updated_board_member.updated_at,
-        }))
+        Ok(BoardMemberDto::from_domain(updated_board_member))
     }
 
     pub async fn delete_board_member(
