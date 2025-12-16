@@ -85,4 +85,13 @@ impl TaskRepository for SeaOrmTaskRepository {
 
         Ok(Self::to_domain(result))
     }
+
+    async fn delete(&self, task_id: Uuid) -> Result<u64, ApplicationError> {
+        let result = TaskEntity::delete_by_id(task_id)
+            .exec(&self.db)
+            .await
+            .map_err(ApplicationError::DatabaseError)?;
+
+        Ok(result.rows_affected)
+    }
 }
