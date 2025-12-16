@@ -19,6 +19,7 @@ pub enum BoardEvent {
     TaskCreated(TaskCreatedEvent),
     TaskUpdated(TaskUpdatedEvent),
     TaskMoved(TaskMovedEvent),
+    TaskDeleted(TaskDeletedEvent),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -149,5 +150,13 @@ pub struct TaskMovedEvent {
     pub old_position: usize,
     pub new_position: usize,
     pub moved_by: Uuid,
+    pub timestamp: DateTime<FixedOffset>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TaskDeletedEvent {
+    pub task_id: Uuid,
+    pub deleted_by: Uuid,
     pub timestamp: DateTime<FixedOffset>,
 }
