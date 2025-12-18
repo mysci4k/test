@@ -22,3 +22,4 @@ target
 
 # Environment variable files
 .env*
+!.env.example
