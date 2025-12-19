@@ -7,7 +7,7 @@ A high-performance REST API backend for a collaborative Kanban board application
 <details>
   <summary>Implemented</summary>
 
-  #### Authentication & Authorizations
+  #### Authentication & Authorizationss
   - [x] User registration with email verification
   - [x] Login/logout with session management (Redis-backed)
   - [x] Password reset flow via email
