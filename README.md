@@ -41,8 +41,20 @@ A high-performance REST API backend for a collaborative Kanban board application
 
 <details>
   <summary>Planned Features & Improvements</summary>
-  
-  :warning: *To be completed*
+
+  #### To Be Done
+  - [ ] Task assignments to specific users
+  - [ ] Task due dates and priorities
+  - [ ] Comments on tasks
+  - [ ] File attachments to tasks
+  - [ ] Board, column and task archiving
+  - [ ] User profile update
+  - [ ] User avatar management
+  - [ ] Notification system
+  - [ ] Search and filtering
+  - [ ] CORS controls
+  - [ ] Rate limiting
+  - [ ] Unit and integration tests
 </details>
 
 ## :building_construction: Architecture
